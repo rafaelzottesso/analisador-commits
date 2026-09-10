@@ -273,3 +273,94 @@ class TestBuildReport:
         )
         assert [m.summary for m in ana.recent_messages] == ["feat: segundo", "feat: primeiro"]
 
+
+class TestComparisonReport:
+    def test_split_commits_by_phases(self) -> None:
+        from services.analyzer import split_commits_by_phases
+
+        c1 = _commit("fase 1", dia=10)
+        c2 = _commit("fase 1 limite", dia=15, hora=23)
+        c3 = _commit("fase 2", dia=16)
+        c4 = _commit("fase 2 limite", dia=20, hora=20)
+        c5 = _commit("atrasado", dia=25)
+
+        cutoff_1 = _dt(15, hora=23).replace(minute=59, second=59)
+        cutoff_2 = _dt(20, hora=23).replace(minute=59, second=59)
+
+        f1, f2, after = split_commits_by_phases([c1, c2, c3, c4, c5], cutoff_1, cutoff_2)
+
+        assert len(f1) == 2
+        assert len(f2) == 2
+        assert len(after) == 1
+        assert after[0].message_summary == "atrasado"
+
+    def test_filter_commits_until(self) -> None:
+        from services.analyzer import filter_commits_until
+
+        c1 = _commit("c1", dia=5)
+        c2 = _commit("c2", dia=10)
+        c3 = _commit("c3", dia=15)
+
+        cutoff = _dt(10, hora=23)
+        filtrados = filter_commits_until([c1, c2, c3], cutoff)
+        assert len(filtrados) == 2
+        assert [c.message_summary for c in filtrados] == ["c1", "c2"]
+
+    def test_build_comparison_report_metricas_e_status(self) -> None:
+        from services.analyzer import build_comparison_report
+
+        f1 = [
+            _commit("feat: ana na f1", email="ana@example.com", nome="Ana", dia=10),
+            _commit("feat: bruno sumira", email="bruno@example.com", nome="Bruno", dia=12),
+        ]
+        f2 = [
+            _commit("feat: ana continua 1", email="ana@example.com", nome="Ana", dia=16),
+            _commit("fix: ana continua 2", email="ana@example.com", nome="Ana", dia=17),
+            _commit("docs: carlos chegou", email="carlos@example.com", nome="Carlos", dia=18),
+        ]
+        after = [_commit("fix: atrasado", email="ana@example.com", dia=25)]
+
+        d1 = _dt(15, 23)
+        d2 = _dt(20, 23)
+
+        report = build_comparison_report(f1, f2, after, "https://github.com/o/r", d1, d2)
+
+        assert report.phase_1.total_commits == 2
+        assert report.phase_2.total_commits == 3
+        assert report.commits_after_deadline == 1
+
+        # Checa status dos autores
+        autores = {a.email: a for a in report.authors}
+        assert autores["ana@example.com"].status_label == "Aumentou ritmo"
+        assert autores["ana@example.com"].status_badge == "success"
+        assert autores["ana@example.com"].commit_delta == 1  # 2 - 1
+
+        assert autores["bruno@example.com"].status_label == "Inativo na Fase 2"
+        assert autores["bruno@example.com"].status_badge == "danger"
+
+        assert autores["carlos@example.com"].status_label == "Iniciou na Fase 2"
+        assert autores["carlos@example.com"].status_badge == "info"
+
+        # Checa insights gerados
+        assert any("atuaram na Fase 1 mas não realizaram nenhum commit na Fase 2" in i for i in report.insights)
+        assert any("começaram a commitar apenas na Fase 2" in i for i in report.insights)
+        assert any("Entregas fora do prazo" in i for i in report.insights)
+
+    def test_build_comparison_report_fase_vazia(self) -> None:
+        """Garante que se uma fase tiver 0 commits, não há erro de divisão por zero."""
+        from services.analyzer import build_comparison_report
+
+        f1 = [_commit("feat: inicial", email="ana@example.com", dia=10)]
+        f2: list = []
+        after: list = []
+
+        d1 = _dt(15, 23)
+        d2 = _dt(20, 23)
+
+        report = build_comparison_report(f1, f2, after, "https://github.com/o/r", d1, d2)
+        assert report.phase_1.total_commits == 1
+        assert report.phase_2.total_commits == 0
+        assert report.phase_2.conventional_pct == 0.0
+        assert any("Nenhum commit foi registrado no período da Fase 2" in i for i in report.insights)
+
+

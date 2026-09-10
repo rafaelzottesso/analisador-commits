@@ -20,6 +20,16 @@
   </a>
 </div>
 
+{% if filtered_until %}
+<div class="alert alert-primary d-flex align-items-center gap-2 mb-3">
+  <i class="bi bi-calendar-check-fill fs-5" aria-hidden="true"></i>
+  <div>
+    <strong>Análise congelada até {{ filtered_until.strftime("%d/%m/%Y") }}:</strong>
+    apenas commits realizados até as 23:59:59 dessa data limite estão sendo considerados.
+  </div>
+</div>
+{% endif %}
+
 {% if report.summary.analysis_limited %}
 <div class="alert alert-info d-flex align-items-center gap-2">
   <i class="bi bi-info-circle-fill" aria-hidden="true"></i>

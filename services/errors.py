@@ -29,3 +29,8 @@ class CloneTimeoutError(AnalyzerError):
 
 class EmptyRepositoryError(AnalyzerError):
     pass
+
+
+class InvalidDateError(AnalyzerError):
+    pass
+

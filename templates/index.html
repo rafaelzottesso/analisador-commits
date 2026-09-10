@@ -41,35 +41,87 @@
             Use o formato https://github.com/usuario/repositorio
           </div>
 
-          <div class="mt-3">
-            <button
-              class="btn btn-link p-0 quickfill-toggle"
-              type="button"
-              data-bs-toggle="collapse"
-              data-bs-target="#quickfill"
-              aria-expanded="false"
-              aria-controls="quickfill"
-            >
-              Não tem o link à mão? Informe usuário e repositório
-            </button>
-            <div class="collapse mt-3" id="quickfill">
-              <div class="p-3 bg-body-tertiary rounded-3 border">
-                <div class="row g-2 align-items-end">
-                  <div class="col-12 col-sm-5">
-                    <label for="gh-usuario" class="form-label small mb-1">Usuário ou organização</label>
-                    <input type="text" class="form-control" id="gh-usuario" placeholder="ex.: octocat" autocomplete="off">
+          <div class="mt-3 d-flex flex-column gap-2">
+            <div>
+              <button
+                class="btn btn-link p-0 quickfill-toggle text-decoration-none"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#datas-filtro"
+                aria-expanded="false"
+                aria-controls="datas-filtro"
+              >
+                <i class="bi bi-calendar-range me-1" aria-hidden="true"></i>
+                Filtro por datas de entrega / Comparativo de fases (opcional)
+              </button>
+              <div class="collapse mt-2" id="datas-filtro">
+                <div class="p-3 bg-body-tertiary rounded-3 border">
+                  <div class="row g-2">
+                    <div class="col-12 col-sm-6">
+                      <label for="date_1" class="form-label small fw-semibold mb-1">
+                        Data da Entrega 1 (Fase 1)
+                      </label>
+                      <input
+                        type="date"
+                        class="form-control"
+                        id="date_1"
+                        name="date_1"
+                        aria-describedby="date-ajuda"
+                      >
+                    </div>
+                    <div class="col-12 col-sm-6">
+                      <label for="date_2" class="form-label small fw-semibold mb-1">
+                        Data da Entrega 2 (Fase 2 - opcional)
+                      </label>
+                      <input
+                        type="date"
+                        class="form-control"
+                        id="date_2"
+                        name="date_2"
+                      >
+                    </div>
                   </div>
-                  <div class="col-12 col-sm-5">
-                    <label for="gh-repo" class="form-label small mb-1">Repositório</label>
-                    <input type="text" class="form-control" id="gh-repo" placeholder="ex.: hello-world" autocomplete="off">
-                  </div>
-                  <div class="col-12 col-sm-2 d-grid">
-                    <button type="button" id="botao-preencher" class="btn btn-outline-primary">Preencher</button>
+                  <div id="date-ajuda" class="form-text small mt-2 mb-0">
+                    <ul class="mb-0 ps-3">
+                      <li>Informe apenas a <strong>Data 1</strong> para analisar o projeto congelado até aquele prazo.</li>
+                      <li>Informe a <strong>Data 1 e a Data 2</strong> para abrir a <strong>tela comparativa de evolução</strong> entre as duas entregas.</li>
+                    </ul>
                   </div>
                 </div>
-                <p class="repo-preview mt-2 mb-0 px-2 py-1" id="preview-url" aria-live="polite">
-                  https://github.com/usuario/repositorio
-                </p>
+              </div>
+            </div>
+
+            <div>
+              <button
+                class="btn btn-link p-0 quickfill-toggle text-decoration-none"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#quickfill"
+                aria-expanded="false"
+                aria-controls="quickfill"
+              >
+                <i class="bi bi-input-cursor-text me-1" aria-hidden="true"></i>
+                Não tem o link à mão? Informe usuário e repositório
+              </button>
+              <div class="collapse mt-2" id="quickfill">
+                <div class="p-3 bg-body-tertiary rounded-3 border">
+                  <div class="row g-2 align-items-end">
+                    <div class="col-12 col-sm-5">
+                      <label for="gh-usuario" class="form-label small mb-1">Usuário ou organização</label>
+                      <input type="text" class="form-control" id="gh-usuario" placeholder="ex.: octocat" autocomplete="off">
+                    </div>
+                    <div class="col-12 col-sm-5">
+                      <label for="gh-repo" class="form-label small mb-1">Repositório</label>
+                      <input type="text" class="form-control" id="gh-repo" placeholder="ex.: hello-world" autocomplete="off">
+                    </div>
+                    <div class="col-12 col-sm-2 d-grid">
+                      <button type="button" id="botao-preencher" class="btn btn-outline-primary">Preencher</button>
+                    </div>
+                  </div>
+                  <p class="repo-preview mt-2 mb-0 px-2 py-1" id="preview-url" aria-live="polite">
+                    https://github.com/usuario/repositorio
+                  </p>
+                </div>
               </div>
             </div>
           </div>

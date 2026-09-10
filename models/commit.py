@@ -260,3 +260,71 @@ class ReportData:
             return self.generated_at.replace(tzinfo=timezone.utc).astimezone(fuso_sp)
         return self.generated_at.astimezone(fuso_sp)
 
+
+@dataclass
+class PhaseSummary:
+    label: str
+    start_date: datetime | None
+    end_date: datetime
+    total_commits: int
+    total_authors: int
+    total_insertions: int
+    total_deletions: int
+    conventional_pct: float
+    commits_with_coauthors: int
+    last_window_pct: float
+    top_types: list[TypeCount]
+
+
+@dataclass
+class AuthorEvolution:
+    name: str
+    email: str
+    commits_p1: int
+    commits_p2: int
+    commit_delta: int
+    commit_delta_pct: float | None
+    insertions_p1: int
+    deletions_p1: int
+    insertions_p2: int
+    deletions_p2: int
+    coauthored_p1: int
+    coauthored_p2: int
+    status_label: str
+    status_badge: str
+    alert_cramming: bool
+    alert_massive_commit: bool
+
+
+@dataclass
+class TypeComparison:
+    commit_type: str
+    count_p1: int
+    count_p2: int
+    pct_p1: float
+    pct_p2: float
+
+
+@dataclass
+class ComparisonReportData:
+    repo_url: str
+    generated_at: datetime
+    date_1: datetime
+    date_2: datetime
+    phase_1: PhaseSummary
+    phase_2: PhaseSummary
+    authors: list[AuthorEvolution]
+    types_comparison: list[TypeComparison]
+    commits_after_deadline: int
+    insights: list[str]
+
+    @property
+    def generated_at_sp(self) -> datetime:
+        """Data e hora de geração no fuso horário de São Paulo (UTC-3)."""
+        from datetime import timedelta, timezone
+        fuso_sp = timezone(timedelta(hours=-3))
+        if self.generated_at.tzinfo is None:
+            return self.generated_at.replace(tzinfo=timezone.utc).astimezone(fuso_sp)
+        return self.generated_at.astimezone(fuso_sp)
+
+

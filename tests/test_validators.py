@@ -95,3 +95,49 @@ class TestCheckRepoSize:
         with patch("services.validators.urlopen", side_effect=TimeoutError("timed out")):
             with pytest.raises(CloneError, match="Não foi possível acessar"):
                 check_repo_size(repo)
+
+
+class TestParseDateFilters:
+    def test_sem_datas(self) -> None:
+        from services.validators import parse_date_filters
+        d1, d2 = parse_date_filters(None, None)
+        assert d1 is None
+        assert d2 is None
+
+    def test_apenas_data_1(self) -> None:
+        from services.validators import parse_date_filters
+        d1, d2 = parse_date_filters("2024-03-15", "")
+        assert d1 is not None
+        assert d2 is None
+        assert d1.year == 2024 and d1.month == 3 and d1.day == 15
+        assert d1.hour == 23 and d1.minute == 59 and d1.second == 59
+
+    def test_duas_datas_validas(self) -> None:
+        from services.validators import parse_date_filters
+        d1, d2 = parse_date_filters("2024-03-15", "2024-03-30")
+        assert d1 is not None
+        assert d2 is not None
+        assert d2 > d1
+        assert d2.day == 30
+
+    def test_apenas_data_2_sem_data_1(self) -> None:
+        from services.errors import InvalidDateError
+        from services.validators import parse_date_filters
+        with pytest.raises(InvalidDateError, match="obrigatório informar a Data 1"):
+            parse_date_filters("", "2024-03-30")
+
+    def test_data_2_igual_ou_anterior_data_1(self) -> None:
+        from services.errors import InvalidDateError
+        from services.validators import parse_date_filters
+        with pytest.raises(InvalidDateError, match="deve ser posterior à Data 1"):
+            parse_date_filters("2024-03-15", "2024-03-15")
+
+        with pytest.raises(InvalidDateError, match="deve ser posterior à Data 1"):
+            parse_date_filters("2024-03-20", "2024-03-15")
+
+    def test_formato_invalido(self) -> None:
+        from services.errors import InvalidDateError
+        from services.validators import parse_date_filters
+        with pytest.raises(InvalidDateError, match="inválida"):
+            parse_date_filters("15/03/2024", None)
+

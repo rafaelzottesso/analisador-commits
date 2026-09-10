@@ -4,13 +4,22 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import date, datetime, time, timedelta, timezone
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 import config
 from models.commit import GitHubRepo
-from services.errors import CloneError, InvalidUrlError, NotGitHubError, RepoTooLargeError
+from services.errors import (
+    AnalyzerError,
+    CloneError,
+    InvalidDateError,
+    InvalidUrlError,
+    NotGitHubError,
+    RepoTooLargeError,
+)
+
 
 _GITHUB_REPO_RE = re.compile(
     r"^https://github\.com/"
@@ -101,3 +110,39 @@ def check_repo_size(repo: GitHubRepo) -> int:
             f"(limite atual: {config.MAX_REPO_SIZE_MB} MB)."
         )
     return size_kb
+
+
+FUSO_SP = timezone(timedelta(hours=-3))
+
+
+def parse_date_filters(
+    date_1_raw: str | None,
+    date_2_raw: str | None,
+) -> tuple[datetime | None, datetime | None]:
+    """Valida e converte datas opcionais para o fim do dia (23:59:59.999999 UTC-3)."""
+    d1_texto = (date_1_raw or "").strip()
+    d2_texto = (date_2_raw or "").strip()
+
+    if not d1_texto and d2_texto:
+        raise InvalidDateError(
+            "Para informar a Data 2 (segunda entrega), é obrigatório informar a Data 1."
+        )
+
+    dt_1 = _parse_single_date(d1_texto, "Data 1") if d1_texto else None
+    dt_2 = _parse_single_date(d2_texto, "Data 2") if d2_texto else None
+
+    if dt_1 and dt_2 and dt_2 <= dt_1:
+        raise InvalidDateError("A Data 2 (segunda entrega) deve ser posterior à Data 1.")
+
+    return dt_1, dt_2
+
+
+def _parse_single_date(valor: str, campo: str) -> datetime:
+    try:
+        data = date.fromisoformat(valor)
+    except ValueError as exc:
+        raise InvalidDateError(
+            f"{campo} inválida. Utilize uma data válida no formato AAAA-MM-DD."
+        ) from exc
+    return datetime.combine(data, time.max, tzinfo=FUSO_SP)
+

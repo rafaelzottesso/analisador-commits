@@ -13,18 +13,21 @@ import config
 from models.commit import (
     AttentionFlag,
     AuthorCount,
+    AuthorEvolution,
     AuthorStats,
     AuthorTimelineSeries,
     AuthorTypeCount,
     Commit,
     CommitSizeBucket,
     CommitTypeStats,
+    ComparisonReportData,
     CumulativePoint,
     ExtensionStats,
     FileAuthorCross,
     FileHotspotStats,
     FileStats,
     HeatmapData,
+    PhaseSummary,
     RecentActivityData,
     RecentAuthorActivity,
     RecentMessage,
@@ -33,8 +36,11 @@ from models.commit import (
     SummaryStats,
     TimelineData,
     TimelinePoint,
+    TypeComparison,
     TypeCount,
 )
+from services.errors import EmptyRepositoryError
+
 
 TIPO_NAO_PADRONIZADO = "não padronizado"
 DIAS_SEMANA = [
@@ -75,6 +81,317 @@ def build_report(
         repo_url=repo_url,
         generated_at=datetime.now(timezone(timedelta(hours=-3))),
     )
+
+
+FUSO_SP = timezone(timedelta(hours=-3))
+
+
+def _normalizar_dt(dt: datetime) -> datetime:
+    """Garante que a data seja timezone-aware no fuso de São Paulo (UTC-3)."""
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc).astimezone(FUSO_SP)
+    return dt.astimezone(FUSO_SP)
+
+
+def filter_commits_until(commits: list[Commit], cutoff: datetime) -> list[Commit]:
+    """Filtra commits realizados até o instante de corte (inclusive)."""
+    cutoff_norm = _normalizar_dt(cutoff)
+    return [c for c in commits if _normalizar_dt(c.committed_at) <= cutoff_norm]
+
+
+def split_commits_by_phases(
+    commits: list[Commit],
+    cutoff_1: datetime,
+    cutoff_2: datetime,
+) -> tuple[list[Commit], list[Commit], list[Commit]]:
+    """Separa os commits em Fase 1, Fase 2 e atrasados (após a Data 2)."""
+    c1_norm = _normalizar_dt(cutoff_1)
+    c2_norm = _normalizar_dt(cutoff_2)
+
+    fase_1: list[Commit] = []
+    fase_2: list[Commit] = []
+    atrasados: list[Commit] = []
+
+    for commit in commits:
+        dt = _normalizar_dt(commit.committed_at)
+        if dt <= c1_norm:
+            fase_1.append(commit)
+        elif dt <= c2_norm:
+            fase_2.append(commit)
+        else:
+            atrasados.append(commit)
+
+    return fase_1, fase_2, atrasados
+
+
+def build_comparison_report(
+    commits_p1: list[Commit],
+    commits_p2: list[Commit],
+    commits_after: list[Commit],
+    repo_url: str,
+    date_1: datetime,
+    date_2: datetime,
+) -> ComparisonReportData:
+    """Gera o relatório comparativo de evolução entre duas entregas."""
+    if not commits_p1 and not commits_p2 and not commits_after:
+        raise EmptyRepositoryError("Nenhum commit encontrado no repositório.")
+
+    p1_summary = _resumo_fase("Fase 1 (Entrega 1)", commits_p1, date_1)
+    p2_summary = _resumo_fase("Fase 2 (Entrega 2)", commits_p2, date_2)
+    authors_evol = _evolucao_autores(commits_p1, commits_p2, date_2)
+    types_comp = _comparar_tipos(commits_p1, commits_p2)
+    insights = _gerar_insights_comparacao(
+        p1_summary, p2_summary, authors_evol, len(commits_after)
+    )
+
+    return ComparisonReportData(
+        repo_url=repo_url,
+        generated_at=datetime.now(FUSO_SP),
+        date_1=date_1,
+        date_2=date_2,
+        phase_1=p1_summary,
+        phase_2=p2_summary,
+        authors=authors_evol,
+        types_comparison=types_comp,
+        commits_after_deadline=len(commits_after),
+        insights=insights,
+    )
+
+
+def _resumo_fase(label: str, commits: list[Commit], end_date: datetime) -> PhaseSummary:
+    total_commits = len(commits)
+    if total_commits == 0:
+        return PhaseSummary(
+            label=label,
+            start_date=None,
+            end_date=end_date,
+            total_commits=0,
+            total_authors=0,
+            total_insertions=0,
+            total_deletions=0,
+            conventional_pct=0.0,
+            commits_with_coauthors=0,
+            last_window_pct=0.0,
+            top_types=[],
+        )
+
+    start_date = min(c.committed_at for c in commits)
+    total_authors = len({c.author_email for c in commits})
+    total_insertions = sum(ins for c in commits for ins, _ in [_linhas(c)])
+    total_deletions = sum(dels for c in commits for _, dels in [_linhas(c)])
+    conventional_pct = _percentual(
+        sum(1 for c in commits if c.is_conventional), total_commits
+    )
+    commits_with_coauthors = sum(1 for c in commits if c.co_authors)
+
+    limite_48h = end_date - timedelta(hours=48)
+    commits_48h = sum(
+        1 for c in commits if _normalizar_dt(c.committed_at) >= limite_48h
+    )
+    last_window_pct = _percentual(commits_48h, total_commits)
+
+    contagem_tipos = Counter(_tipo(c) for c in commits)
+    top_types = [
+        TypeCount(
+            commit_type=tipo,
+            count=qtd,
+            percentage=_percentual(qtd, total_commits),
+        )
+        for tipo, qtd in contagem_tipos.most_common()
+    ]
+
+    return PhaseSummary(
+        label=label,
+        start_date=start_date,
+        end_date=end_date,
+        total_commits=total_commits,
+        total_authors=total_authors,
+        total_insertions=total_insertions,
+        total_deletions=total_deletions,
+        conventional_pct=conventional_pct,
+        commits_with_coauthors=commits_with_coauthors,
+        last_window_pct=last_window_pct,
+        top_types=top_types,
+    )
+
+
+def _evolucao_autores(
+    commits_p1: list[Commit],
+    commits_p2: list[Commit],
+    cutoff_2: datetime,
+) -> list[AuthorEvolution]:
+    emails_todos: set[str] = set()
+    nome_por_email: dict[str, str] = {}
+
+    for c in commits_p1 + commits_p2:
+        emails_todos.add(c.author_email)
+        nome_por_email[c.author_email] = c.author_name
+
+    autores: list[AuthorEvolution] = []
+    for email in emails_todos:
+        nome = nome_por_email[email]
+        p1 = [c for c in commits_p1 if c.author_email == email]
+        p2 = [c for c in commits_p2 if c.author_email == email]
+
+        c_p1 = len(p1)
+        c_p2 = len(p2)
+        delta = c_p2 - c_p1
+        delta_pct = round(100.0 * delta / c_p1, 1) if c_p1 > 0 else None
+
+        ins_p1 = sum(ins for c in p1 for ins, _ in [_linhas(c)])
+        del_p1 = sum(dels for c in p1 for _, dels in [_linhas(c)])
+        ins_p2 = sum(ins for c in p2 for ins, _ in [_linhas(c)])
+        del_p2 = sum(dels for c in p2 for _, dels in [_linhas(c)])
+
+        co_p1 = sum(
+            1 for c in commits_p1 if any(co.email == email for co in c.co_authors)
+        )
+        co_p2 = sum(
+            1 for c in commits_p2 if any(co.email == email for co in c.co_authors)
+        )
+
+        if c_p1 == 0 and c_p2 > 0:
+            status_label = "Iniciou na Fase 2"
+            status_badge = "info"
+        elif c_p1 > 0 and c_p2 == 0:
+            status_label = "Inativo na Fase 2"
+            status_badge = "danger"
+        elif c_p2 > c_p1:
+            status_label = "Aumentou ritmo"
+            status_badge = "success"
+        elif c_p2 < c_p1:
+            status_label = "Diminuiu ritmo"
+            status_badge = "warning"
+        else:
+            status_label = "Estável"
+            status_badge = "secondary"
+
+        alert_cramming = False
+        if c_p2 >= 2:
+            limite_24h = cutoff_2 - timedelta(hours=24)
+            commits_24h = sum(1 for c in p2 if _normalizar_dt(c.committed_at) >= limite_24h)
+            if (commits_24h / c_p2) >= 0.8:
+                alert_cramming = True
+
+        alert_massive = False
+        if c_p2 == 1 and (ins_p2 + del_p2) >= 500:
+            alert_massive = True
+
+        autores.append(
+            AuthorEvolution(
+                name=nome,
+                email=email,
+                commits_p1=c_p1,
+                commits_p2=c_p2,
+                commit_delta=delta,
+                commit_delta_pct=delta_pct,
+                insertions_p1=ins_p1,
+                deletions_p1=del_p1,
+                insertions_p2=ins_p2,
+                deletions_p2=del_p2,
+                coauthored_p1=co_p1,
+                coauthored_p2=co_p2,
+                status_label=status_label,
+                status_badge=status_badge,
+                alert_cramming=alert_cramming,
+                alert_massive_commit=alert_massive,
+            )
+        )
+
+    autores.sort(key=lambda a: (a.commits_p2 + a.commits_p1, a.commits_p2), reverse=True)
+    return autores
+
+
+def _comparar_tipos(
+    commits_p1: list[Commit], commits_p2: list[Commit]
+) -> list[TypeComparison]:
+    t1 = Counter(_tipo(c) for c in commits_p1)
+    t2 = Counter(_tipo(c) for c in commits_p2)
+    tot1 = len(commits_p1)
+    tot2 = len(commits_p2)
+
+    todos_tipos = sorted(
+        set(t1.keys()) | set(t2.keys()),
+        key=lambda tp: (t1[tp] + t2[tp]),
+        reverse=True,
+    )
+    resultado: list[TypeComparison] = []
+    for tipo in todos_tipos:
+        c1 = t1[tipo]
+        c2 = t2[tipo]
+        resultado.append(
+            TypeComparison(
+                commit_type=tipo,
+                count_p1=c1,
+                count_p2=c2,
+                pct_p1=_percentual(c1, tot1) if tot1 else 0.0,
+                pct_p2=_percentual(c2, tot2) if tot2 else 0.0,
+            )
+        )
+    return resultado
+
+
+def _gerar_insights_comparacao(
+    phase_1: PhaseSummary,
+    phase_2: PhaseSummary,
+    authors: list[AuthorEvolution],
+    commits_after: int,
+) -> list[str]:
+    insights: list[str] = []
+
+    inativos = [a.name for a in authors if a.commits_p1 > 0 and a.commits_p2 == 0]
+    if inativos:
+        nomes = ", ".join(inativos[:3])
+        if len(inativos) > 3:
+            nomes += f" e mais {len(inativos) - 3}"
+        insights.append(
+            f"⚠️ {len(inativos)} autor(es) atuaram na Fase 1 mas não realizaram nenhum commit na Fase 2: {nomes}."
+        )
+
+    novos = [a.name for a in authors if a.commits_p1 == 0 and a.commits_p2 > 0]
+    if novos:
+        nomes = ", ".join(novos[:3])
+        if len(novos) > 3:
+            nomes += f" e mais {len(novos) - 3}"
+        insights.append(
+            f"ℹ️ {len(novos)} autor(es) começaram a commitar apenas na Fase 2: {nomes}."
+        )
+
+    crammers = [a.name for a in authors if a.alert_cramming]
+    if crammers:
+        nomes = ", ".join(crammers[:3])
+        insights.append(
+            f"⚡ Concentração de véspera: {nomes} realizou(ram) mais de 80% dos seus commits da Fase 2 nas últimas 24 horas antes do prazo."
+        )
+
+    massives = [a.name for a in authors if a.alert_massive_commit]
+    if massives:
+        nomes = ", ".join(massives[:3])
+        insights.append(
+            f"📦 Commit massivo isolado: {nomes} realizou um único commit na Fase 2 com mais de 500 linhas alteradas."
+        )
+
+    if phase_1.total_commits > 0 and phase_2.total_commits > 0:
+        diff_cc = phase_2.conventional_pct - phase_1.conventional_pct
+        if diff_cc >= 10:
+            insights.append(
+                f"✨ Evolução de padronização: a aderência ao Conventional Commits saltou de {phase_1.conventional_pct}% na Fase 1 para {phase_2.conventional_pct}% na Fase 2 (+{round(diff_cc, 1)}%)."
+            )
+        elif diff_cc <= -15:
+            insights.append(
+                f"⚠️ Queda na padronização: a aderência ao Conventional Commits caiu de {phase_1.conventional_pct}% na Fase 1 para {phase_2.conventional_pct}% na Fase 2 ({round(diff_cc, 1)}%)."
+            )
+
+    if commits_after > 0:
+        insights.append(
+            f"🕒 Entregas fora do prazo: foram registrados {commits_after} commit(s) após a data limite da Entrega 2."
+        )
+
+    if phase_2.total_commits == 0:
+        insights.append("⚠️ Nenhum commit foi registrado no período da Fase 2.")
+
+    return insights
+
 
 
 

@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}Comparativo de Fases — Analisador de Commits{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+  <div>
+    <p class="hero-eyebrow mb-1">Relatório comparativo de fases</p>
+    <h1 class="h3 mb-1 d-flex align-items-center gap-2">
+      <i class="bi bi-github" aria-hidden="true"></i>
+      <a class="link-body-emphasis" href="{{ report.repo_url }}" rel="noopener noreferrer" target="_blank">{{ report.repo_url }}</a>
+    </h1>
+    <p class="text-secondary mb-0">
+      Análise gerada em {{ report.generated_at_sp.strftime("%d/%m/%Y às %H:%M (UTC-3)") }}
+    </p>
+  </div>
+  <a class="btn btn-outline-primary" href="{{ url_for('analyzer.index') }}">
+    <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Analisar outro repositório
+  </a>
+</div>
+
+{% if report.commits_after_deadline > 0 %}
+<div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+  <i class="bi bi-exclamation-triangle-fill fs-5" aria-hidden="true"></i>
+  <div>
+    <strong>Entregas fora do prazo:</strong> foram identificados <strong>{{ report.commits_after_deadline }} commit(s)</strong> realizados após o encerramento da Fase 2 ({{ report.date_2.strftime("%d/%m/%Y às 23:59") }}).
+  </div>
+</div>
+{% endif %}
+
+<section class="mb-5" id="resumo">
+  <h2 class="h5 text-uppercase text-secondary mb-3">Resumo executivo</h2>
+  <div class="row row-cols-2 row-cols-lg-3 g-3">
+    <div class="col">
+      <div class="card stat-card h-100 border-0">
+        <div class="card-body d-flex align-items-start gap-3">
+          <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-git" aria-hidden="true"></i></div>
+          <div>
+            <div class="text-secondary small">Commits (F1 &rarr; F2)</div>
+            <div class="fs-3 font-heading fw-bold">
+              {{ report.phase_1.total_commits }} <span class="text-secondary fs-5">&rarr;</span> {{ report.phase_2.total_commits }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card stat-card h-100 border-0">
+        <div class="card-body d-flex align-items-start gap-3">
+          <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-people-fill" aria-hidden="true"></i></div>
+          <div>
+            <div class="text-secondary small">Autores (F1 &rarr; F2)</div>
+            <div class="fs-3 font-heading fw-bold">
+              {{ report.phase_1.total_authors }} <span class="text-secondary fs-5">&rarr;</span> {{ report.phase_2.total_authors }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card stat-card h-100 border-0">
+        <div class="card-body d-flex align-items-start gap-3">
+          <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-check2-circle" aria-hidden="true"></i></div>
+          <div>
+            <div class="text-secondary small">Aderência Conventional</div>
+            <div class="fs-3 font-heading fw-bold">
+              {{ report.phase_1.conventional_pct }}% <span class="text-secondary fs-5">&rarr;</span> {{ report.phase_2.conventional_pct }}%
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card stat-card h-100 border-0">
+        <div class="card-body d-flex align-items-start gap-3">
+          <div class="stat-icon bg-warning-subtle text-warning-emphasis"><i class="bi bi-file-diff-fill" aria-hidden="true"></i></div>
+          <div>
+            <div class="text-secondary small">Linhas + / − (F1 &rarr; F2)</div>
+            <div class="fs-3 font-heading fw-bold">
+              +{{ report.phase_1.total_insertions + report.phase_2.total_insertions }} / -{{ report.phase_1.total_deletions + report.phase_2.total_deletions }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card stat-card h-100 border-0">
+        <div class="card-body d-flex align-items-start gap-3">
+          <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-people-fill" aria-hidden="true"></i></div>
+          <div>
+            <div class="text-secondary small">Commits com co-autoria</div>
+            <div class="fs-3 font-heading fw-bold">
+              {{ report.phase_1.commits_with_coauthors }} <span class="text-secondary fs-5">&rarr;</span> {{ report.phase_2.commits_with_coauthors }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card stat-card h-100 border-0">
+        <div class="card-body d-flex align-items-start gap-3">
+          <div class="stat-icon {% if report.phase_2.last_window_pct >= 40 %}bg-danger-subtle text-danger{% else %}bg-primary-subtle text-primary{% endif %}"><i class="bi bi-hourglass-split" aria-hidden="true"></i></div>
+          <div>
+            <div class="text-secondary small">Últimas 48h da Fase 2</div>
+            <div class="fs-3 font-heading fw-bold">{{ report.phase_2.last_window_pct }}%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="text-secondary mt-3 mb-0 small">
+    Fase 1: até {{ report.date_1.strftime("%d/%m/%Y") }}.
+    Fase 2: até {{ report.date_2.strftime("%d/%m/%Y") }}.
+    Variação total de commits:
+    {% set delta = report.phase_2.total_commits - report.phase_1.total_commits %}
+    {% if delta > 0 %}+{{ delta }} commit(s){% elif delta < 0 %}{{ delta }} commit(s){% else %}volume estável{% endif %}.
+    Autores agrupados por e-mail; a mesma pessoa pode aparecer mais de uma vez se usou e-mails diferentes.
+  </p>
+</section>
+
+<section class="mb-5" id="autores">
+  <h2 class="h5 text-uppercase text-secondary mb-3">Participação por autor</h2>
+  <div class="row g-3 mb-3">
+    <div class="col-lg-6">
+      <div class="card chart-card border-0 h-100">
+        <div class="card-header">Commits por autor (Fase 1 vs Fase 2)</div>
+        <div class="card-body">
+          <div id="grafico-comparativo-autores" class="grafico"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card chart-card border-0 h-100">
+        <div class="card-header">Evolução dos tipos de commit</div>
+        <div class="card-body">
+          <div id="grafico-comparativo-tipos" class="grafico"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card border-0">
+    <div class="table-responsive tabela-autores-scroll">
+      <table class="table table-sm table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Autor</th>
+            <th>E-mail</th>
+            <th>Commits F1</th>
+            <th>Commits F2</th>
+            <th>Variação</th>
+            <th>Linhas F1</th>
+            <th>Linhas F2</th>
+            <th>Co-autor em</th>
+            <th>Evolução</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for autor in report.authors %}
+          <tr class="{% if autor.status_badge == 'danger' or autor.alert_cramming %}table-warning{% endif %}">
+            <td>{{ autor.name }}</td>
+            <td>{{ autor.email }}</td>
+            <td>{{ autor.commits_p1 }}</td>
+            <td>{{ autor.commits_p2 }}</td>
+            <td>
+              {% if autor.commit_delta > 0 %}
+                <span class="text-success fw-semibold">+{{ autor.commit_delta }}</span>
+              {% elif autor.commit_delta < 0 %}
+                <span class="text-danger fw-semibold">{{ autor.commit_delta }}</span>
+              {% else %}
+                <span class="text-secondary">0</span>
+              {% endif %}
+            </td>
+            <td>+{{ autor.insertions_p1 }} / -{{ autor.deletions_p1 }}</td>
+            <td>+{{ autor.insertions_p2 }} / -{{ autor.deletions_p2 }}</td>
+            <td>
+              {% if autor.coauthored_p1 or autor.coauthored_p2 %}
+                <span class="badge rounded-pill text-bg-info fw-normal">F1: {{ autor.coauthored_p1 }} | F2: {{ autor.coauthored_p2 }}</span>
+              {% else %}
+                <span class="text-secondary">—</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge rounded-pill text-bg-{{ autor.status_badge }} fw-normal">{{ autor.status_label }}</span>
+              {% if autor.alert_cramming %}
+                <span class="badge rounded-pill text-bg-warning text-dark fw-normal" title="Mais de 80% dos commits da Fase 2 feitos nas últimas 24h">Véspera</span>
+              {% endif %}
+              {% if autor.alert_massive_commit %}
+                <span class="badge rounded-pill text-bg-danger fw-normal" title="Commit massivo isolado com mais de 500 linhas">Commit massivo</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <p class="small text-secondary mt-2">
+    Linhas destacadas indicam pontos de atenção (como inatividade na Fase 2 ou concentração na véspera) para o professor investigar — não é um julgamento automático.
+    "Co-autor em" conta commits em que esse e-mail aparece como <code>Co-authored-by</code> em cada fase.
+  </p>
+</section>
+
+<section class="mb-5" id="atencao">
+  <h2 class="h5 text-uppercase text-secondary mb-3">Pontos de atenção</h2>
+  {% if report.insights %}
+    <ul class="list-group">
+      {% for insight in report.insights %}
+      <li class="list-group-item d-flex align-items-start gap-2">
+        <i class="bi bi-flag-fill text-warning-emphasis mt-1" aria-hidden="true"></i>
+        <span>{{ insight }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="small text-secondary mt-2 mb-0">Observações pedagógicas para investigação, não vereditos sobre o grupo.</p>
+  {% else %}
+    <div class="card border-0"><div class="card-body text-secondary">Nenhum ponto de atenção automático foi destacado neste comparativo.</div></div>
+  {% endif %}
+</section>
+
+<script id="comparison-data" type="application/json">{{ report_json | tojson }}</script>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/comparison.js') }}"></script>
+{% endblock %}
