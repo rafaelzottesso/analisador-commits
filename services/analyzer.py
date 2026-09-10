@@ -25,6 +25,9 @@ from models.commit import (
     FileHotspotStats,
     FileStats,
     HeatmapData,
+    RecentActivityData,
+    RecentAuthorActivity,
+    RecentMessage,
     ReportData,
     ScopeCount,
     SummaryStats,
@@ -62,6 +65,7 @@ def build_report(
         summary=_resumo(commits, analysis_limited),
         authors=_autores(commits),
         cumulative_contribution=_contribuicao_acumulada(commits),
+        recent_activity=_atividade_recente(commits),
         commit_types=_tipos(commits),
         timeline=_linha_do_tempo(commits),
         commit_size_buckets=_tamanho_commits(commits),
@@ -218,6 +222,74 @@ def _contribuicao_acumulada(commits: list[Commit]) -> list[AuthorTimelineSeries]
             AuthorTimelineSeries(author_email=email, author_name=nomes[email], points=pontos)
         )
     return series
+
+
+def _atividade_recente(commits: list[Commit]) -> RecentActivityData:
+    """Atividade por autor nos últimos N dias corridos a partir de agora.
+
+    Diferente de `_janela_final` (ancorada no último commit do histórico,
+    usada para detectar corrida de última hora), aqui a âncora é o
+    momento real da análise — o que interessa para saber quem está
+    trabalhando "agora", perto de um prazo.
+    """
+    agora = datetime.now(timezone.utc)
+    curto_dias = config.RECENT_ACTIVITY_SHORT_DAYS
+    longo_dias = config.RECENT_ACTIVITY_LONG_DAYS
+    limite_curto = agora - timedelta(days=curto_dias)
+    limite_longo = agora - timedelta(days=longo_dias)
+
+    por_autor: dict[str, list[Commit]] = defaultdict(list)
+    for commit in commits:
+        por_autor[commit.author_email].append(commit)
+
+    autores: list[RecentAuthorActivity] = []
+    for email, grupo in por_autor.items():
+        nome = Counter(commit.author_name for commit in grupo).most_common(1)[0][0]
+        recentes_longo = [c for c in grupo if c.committed_at >= limite_longo]
+        recentes_curto = [c for c in recentes_longo if c.committed_at >= limite_curto]
+        ultimo = max(commit.committed_at for commit in grupo)
+
+        insercoes = remocoes = 0
+        for commit in recentes_longo:
+            ins, dele = _linhas(commit)
+            insercoes += ins
+            remocoes += dele
+
+        mensagens = sorted(recentes_longo, key=lambda c: c.committed_at, reverse=True)[
+            : config.RECENT_ACTIVITY_MAX_MESSAGES
+        ]
+
+        autores.append(
+            RecentAuthorActivity(
+                author_email=email,
+                author_name=nome,
+                commits_short_window=len(recentes_curto),
+                commits_long_window=len(recentes_longo),
+                insertions_long_window=insercoes,
+                deletions_long_window=remocoes,
+                active_days_long_window=len({c.committed_at.date() for c in recentes_longo}),
+                days_since_last_commit=(agora - ultimo).days,
+                last_commit_at=ultimo,
+                recent_messages=[
+                    RecentMessage(
+                        date=commit.committed_at.date().isoformat(),
+                        summary=commit.message_summary.strip() or "(sem mensagem)",
+                        sha_short=commit.sha_short,
+                    )
+                    for commit in mensagens
+                ],
+            )
+        )
+
+    autores.sort(key=lambda a: (a.commits_long_window, a.commits_short_window), reverse=True)
+    truncado = len(autores) > config.RECENT_ACTIVITY_MAX_AUTHORS
+    return RecentActivityData(
+        authors=autores[: config.RECENT_ACTIVITY_MAX_AUTHORS],
+        short_window_days=curto_dias,
+        long_window_days=longo_dias,
+        reference_at=agora,
+        truncated=truncado,
+    )
 
 
 def _tipos(commits: list[Commit]) -> CommitTypeStats:

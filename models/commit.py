@@ -200,6 +200,36 @@ class AuthorTimelineSeries:
 
 
 @dataclass
+class RecentMessage:
+    date: str
+    summary: str
+    sha_short: str
+
+
+@dataclass
+class RecentAuthorActivity:
+    author_email: str
+    author_name: str
+    commits_short_window: int
+    commits_long_window: int
+    insertions_long_window: int
+    deletions_long_window: int
+    active_days_long_window: int
+    days_since_last_commit: int
+    last_commit_at: datetime
+    recent_messages: list[RecentMessage]
+
+
+@dataclass
+class RecentActivityData:
+    authors: list[RecentAuthorActivity]
+    short_window_days: int
+    long_window_days: int
+    reference_at: datetime
+    truncated: bool
+
+
+@dataclass
 class AttentionFlag:
     kind: str
     message: str
@@ -211,6 +241,7 @@ class ReportData:
     summary: SummaryStats
     authors: list[AuthorStats]
     cumulative_contribution: list[AuthorTimelineSeries]
+    recent_activity: RecentActivityData
     commit_types: CommitTypeStats
     timeline: TimelineData
     commit_size_buckets: list[CommitSizeBucket]

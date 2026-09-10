@@ -10,6 +10,10 @@ def _dt(dia: int, hora: int = 10) -> datetime:
     return datetime(2024, 3, dia, hora, 0, tzinfo=timezone(timedelta(hours=-3)))
 
 
+def _ha_dias(dias: float) -> datetime:
+    return datetime.now(timezone.utc) - timedelta(days=dias)
+
+
 def _commit(
     summary: str,
     email: str = "ana@example.com",
@@ -19,6 +23,7 @@ def _commit(
     arquivos: list[FileChange] | None = None,
     is_merge: bool = False,
     mensagem_completa: str | None = None,
+    quando: datetime | None = None,
 ) -> Commit:
     mensagem = mensagem_completa if mensagem_completa is not None else summary
     commit = Commit(
@@ -26,7 +31,7 @@ def _commit(
         sha_short="aaaaaaa",
         author_name=nome,
         author_email=email,
-        committed_at=_dt(dia, hora),
+        committed_at=quando if quando is not None else _dt(dia, hora),
         message=mensagem,
         message_summary=summary,
         is_merge=is_merge,
@@ -228,4 +233,43 @@ class TestBuildReport:
         relatorio = build_report(commits, "https://github.com/o/r")
         assert relatorio.generated_at_sp.tzinfo is not None
         assert relatorio.generated_at_sp.utcoffset() == timedelta(hours=-3)
+
+    def test_atividade_recente_separa_janelas(self) -> None:
+        commits = [
+            _commit("feat: hoje", email="ana@example.com", quando=_ha_dias(1)),
+            _commit("feat: semana passada", email="ana@example.com", quando=_ha_dias(10)),
+            _commit("feat: mes passado", email="ana@example.com", quando=_ha_dias(25)),
+            _commit("feat: antigo", email="ana@example.com", quando=_ha_dias(60)),
+        ]
+        relatorio = build_report(commits, "https://github.com/o/r")
+        ana = next(
+            a for a in relatorio.recent_activity.authors if a.author_email == "ana@example.com"
+        )
+        assert ana.commits_short_window == 1
+        assert ana.commits_long_window == 3
+        assert ana.active_days_long_window == 3
+        assert ana.days_since_last_commit == 1
+
+    def test_atividade_recente_inclui_autor_sem_atividade(self) -> None:
+        commits = [
+            _commit("feat: ativo", email="ana@example.com", quando=_ha_dias(1)),
+            _commit("feat: sumiu", email="bruno@example.com", nome="Bruno", quando=_ha_dias(90)),
+        ]
+        relatorio = build_report(commits, "https://github.com/o/r")
+        bruno = next(
+            a for a in relatorio.recent_activity.authors if a.author_email == "bruno@example.com"
+        )
+        assert bruno.commits_short_window == 0
+        assert bruno.commits_long_window == 0
+
+    def test_atividade_recente_traz_mensagens_mais_novas_primeiro(self) -> None:
+        commits = [
+            _commit("feat: primeiro", email="ana@example.com", quando=_ha_dias(5)),
+            _commit("feat: segundo", email="ana@example.com", quando=_ha_dias(2)),
+        ]
+        relatorio = build_report(commits, "https://github.com/o/r")
+        ana = next(
+            a for a in relatorio.recent_activity.authors if a.author_email == "ana@example.com"
+        )
+        assert [m.summary for m in ana.recent_messages] == ["feat: segundo", "feat: primeiro"]
 
