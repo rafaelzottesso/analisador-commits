@@ -29,8 +29,8 @@
 
 <section class="mb-5" id="resumo">
   <h2 class="h5 text-uppercase text-secondary mb-3">Resumo executivo</h2>
-  <div class="row g-3">
-    <div class="col-6 col-lg-3">
+  <div class="row row-cols-2 row-cols-lg-3 g-3">
+    <div class="col">
       <div class="card stat-card h-100 border-0">
         <div class="card-body d-flex align-items-start gap-3">
           <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-git" aria-hidden="true"></i></div>
@@ -41,7 +41,7 @@
         </div>
       </div>
     </div>
-    <div class="col-6 col-lg-3">
+    <div class="col">
       <div class="card stat-card h-100 border-0">
         <div class="card-body d-flex align-items-start gap-3">
           <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-people-fill" aria-hidden="true"></i></div>
@@ -52,7 +52,7 @@
         </div>
       </div>
     </div>
-    <div class="col-6 col-lg-3">
+    <div class="col">
       <div class="card stat-card h-100 border-0">
         <div class="card-body d-flex align-items-start gap-3">
           <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-check2-circle" aria-hidden="true"></i></div>
@@ -63,13 +63,35 @@
         </div>
       </div>
     </div>
-    <div class="col-6 col-lg-3">
+    <div class="col">
       <div class="card stat-card h-100 border-0">
         <div class="card-body d-flex align-items-start gap-3">
           <div class="stat-icon bg-warning-subtle text-warning-emphasis"><i class="bi bi-file-diff-fill" aria-hidden="true"></i></div>
           <div>
             <div class="text-secondary small">Linhas + / −</div>
             <div class="fs-3 font-heading fw-bold">{{ report.summary.total_insertions }} / {{ report.summary.total_deletions }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card stat-card h-100 border-0">
+        <div class="card-body d-flex align-items-start gap-3">
+          <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-people-fill" aria-hidden="true"></i></div>
+          <div>
+            <div class="text-secondary small">Commits com co-autoria</div>
+            <div class="fs-3 font-heading fw-bold">{{ report.summary.commits_with_coauthors }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card stat-card h-100 border-0">
+        <div class="card-body d-flex align-items-start gap-3">
+          <div class="stat-icon {% if report.summary.last_window_pct >= 40 %}bg-danger-subtle text-danger{% else %}bg-primary-subtle text-primary{% endif %}"><i class="bi bi-hourglass-split" aria-hidden="true"></i></div>
+          <div>
+            <div class="text-secondary small">Últimas {{ report.summary.last_window_hours }}h do histórico</div>
+            <div class="fs-3 font-heading fw-bold">{{ report.summary.last_window_pct }}%</div>
           </div>
         </div>
       </div>
@@ -86,10 +108,22 @@
 
 <section class="mb-5" id="autores">
   <h2 class="h5 text-uppercase text-secondary mb-3">Participação por autor</h2>
-  <div class="card chart-card border-0 mb-3">
-    <div class="card-header">Commits por autor</div>
-    <div class="card-body">
-      <div id="grafico-autores" class="grafico"></div>
+  <div class="row g-3 mb-3">
+    <div class="col-lg-6">
+      <div class="card chart-card border-0 h-100">
+        <div class="card-header">Commits por autor</div>
+        <div class="card-body">
+          <div id="grafico-autores" class="grafico"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card chart-card border-0 h-100">
+        <div class="card-header">Contribuição acumulada (top {{ report.cumulative_contribution|length }} autores)</div>
+        <div class="card-body">
+          <div id="grafico-acumulado" class="grafico"></div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="card border-0">
@@ -104,6 +138,7 @@
             <th>Linhas +/−</th>
             <th>Primeiro</th>
             <th>Último</th>
+            <th>Co-autor em</th>
             <th>Tipos mais usados</th>
           </tr>
         </thead>
@@ -118,6 +153,13 @@
             <td>{{ autor.first_commit_at.strftime("%d/%m/%Y") }}</td>
             <td>{{ autor.last_commit_at.strftime("%d/%m/%Y") }}</td>
             <td>
+              {% if autor.coauthored_commit_count %}
+                <span class="badge rounded-pill text-bg-info fw-normal">{{ autor.coauthored_commit_count }} commit(s)</span>
+              {% else %}
+                <span class="text-secondary">—</span>
+              {% endif %}
+            </td>
+            <td>
               {% for tipo in autor.top_commit_types[:3] %}
                 <span class="badge rounded-pill text-bg-secondary fw-normal">{{ tipo.commit_type }} ({{ tipo.count }})</span>
               {% endfor %}
@@ -128,7 +170,11 @@
       </table>
     </div>
   </div>
-  <p class="small text-secondary mt-2">Linhas destacadas indicam participação abaixo do limiar configurado, para o professor investigar — não é um julgamento automático.</p>
+  <p class="small text-secondary mt-2">
+    Linhas destacadas indicam participação abaixo do limiar configurado, para o professor investigar — não é um julgamento automático.
+    "Co-autor em" conta commits de <em>outras</em> pessoas em que esse e-mail aparece como
+    <code>Co-authored-by</code> — contribuição que não aparece como autoria principal.
+  </p>
 </section>
 
 <section class="mb-5" id="tipos">
@@ -165,6 +211,18 @@
     <div class="card-body"><div id="grafico-timeline" class="grafico"></div></div>
   </div>
   <p class="small text-secondary mt-2">{{ report.timeline.note }}</p>
+</section>
+
+<section class="mb-5" id="tamanho">
+  <h2 class="h5 text-uppercase text-secondary mb-3">Tamanho dos commits</h2>
+  <div class="card chart-card border-0">
+    <div class="card-header">Linhas alteradas por commit</div>
+    <div class="card-body"><div id="grafico-tamanho" class="grafico"></div></div>
+  </div>
+  <p class="small text-secondary mt-2">
+    Distribuição de commits por faixa de linhas alteradas (inserções + remoções).
+    Muitos commits nas faixas mais altas podem indicar trabalho acumulado antes de commitar.
+  </p>
 </section>
 
 <section class="mb-5" id="heatmap">
@@ -214,6 +272,39 @@
       </table>
     </div>
   </div>
+
+  {% if report.file_hotspots.single_owner_files %}
+  <h3 class="h6 text-uppercase text-secondary mt-4 mb-2">
+    Arquivos com um único responsável
+    <span class="badge rounded-pill text-bg-secondary fw-normal">{{ report.file_hotspots.single_owner_count }}</span>
+  </h3>
+  <div class="card border-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Arquivo</th>
+            <th>Commits</th>
+            <th>Linhas alteradas</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for arquivo in report.file_hotspots.single_owner_files %}
+          <tr>
+            <td><code>{{ arquivo.path }}</code></td>
+            <td>{{ arquivo.commit_count }}</td>
+            <td>{{ arquivo.total_changed }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <p class="small text-secondary mt-2">
+    Arquivos alterados por apenas uma pessoa em todo o histórico — possível "bus factor" 1.
+    Não é necessariamente um problema, mas vale confirmar se o conhecimento desses arquivos está concentrado de propósito.
+  </p>
+  {% endif %}
 </section>
 
 <section class="mb-5" id="atencao">

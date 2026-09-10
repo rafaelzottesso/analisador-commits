@@ -145,6 +145,41 @@ function plotArquivos() {
   );
 }
 
+function plotAcumulado() {
+  const traces = dados.cumulative_contribution.map((serie, indice) => ({
+    type: "scatter",
+    mode: "lines",
+    name: serie.author_name,
+    x: serie.points.map((p) => p.date),
+    y: serie.points.map((p) => p.cumulative_commits),
+    line: { color: CORES.paleta[indice % CORES.paleta.length] },
+    hovertemplate: `${serie.author_name}: %{y} commits<extra></extra>`,
+  }));
+  Plotly.newPlot(
+    "grafico-acumulado",
+    traces,
+    { ...layoutBase, margin: { t: 8, r: 16, b: 48, l: 48 }, legend: { orientation: "h", y: -0.2 } },
+    { responsive: true, displayModeBar: false }
+  );
+}
+
+function plotTamanho() {
+  Plotly.newPlot(
+    "grafico-tamanho",
+    [
+      {
+        type: "bar",
+        x: dados.commit_size_buckets.map((b) => b.label),
+        y: dados.commit_size_buckets.map((b) => b.count),
+        marker: { color: CORES.paleta },
+        hovertemplate: "%{x} linhas: %{y} commit(s)<extra></extra>",
+      },
+    ],
+    { ...layoutBase, margin: { t: 8, r: 16, b: 48, l: 48 } },
+    { responsive: true, displayModeBar: false }
+  );
+}
+
 function plotExtensoes() {
   Plotly.newPlot(
     "grafico-extensoes",
@@ -163,9 +198,11 @@ function plotExtensoes() {
 }
 
 plotAutores();
+plotAcumulado();
 plotTipos();
 plotTiposPorAutor();
 plotTimeline();
+plotTamanho();
 plotHeatmap();
 plotArquivos();
 plotExtensoes();
