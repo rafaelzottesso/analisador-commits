@@ -34,6 +34,16 @@ flask --app app run
 
 Abra http://127.0.0.1:5000 e cole a URL de um repositório público.
 
+### Rodar em porta específica (ex.: 8080)
+
+Para definir uma porta diferente da padrão (5000), utilize a flag `--port`:
+
+```bash
+flask --app app run --port 8080
+```
+
+E acesse em http://127.0.0.1:8080.
+
 Variável opcional: copie `.env.example` para `.env` e defina
 `GITHUB_TOKEN` se a cota da API pública do GitHub (checagem de tamanho)
 ficar curta. A aplicação lê `GITHUB_TOKEN` do ambiente; não commite o
@@ -66,6 +76,27 @@ não dependem de rede.
 
 ## Deploy
 
-Pensado para Google Cloud Run (container, escala a zero, sem banco).
-Ajuste o timeout da requisição na plataforma para acomodar clones;
-a aplicação também aplica o timeout interno acima.
+Pensado para o **Google Cloud Run** (container Docker, escala a zero, sem banco).
+O repositório já inclui `Dockerfile`, `.dockerignore` e `.gcloudignore` prontos.
+
+No Windows (PowerShell), utilize o script auxiliar:
+
+```powershell
+.\deploy.ps1 -ProjectId "seu-projeto-gcp"
+```
+
+Ou execute o comando diretamente via Google Cloud SDK:
+
+```bash
+gcloud run deploy analisador-commits \
+  --source . \
+  --region southamerica-east1 \
+  --allow-unauthenticated \
+  --memory 1Gi \
+  --cpu 1 \
+  --concurrency 30 \
+  --min-instances 0 \
+  --max-instances 5 \
+  --timeout 120s
+```
+
