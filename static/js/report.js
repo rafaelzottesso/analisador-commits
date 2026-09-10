@@ -41,6 +41,36 @@ function plotAutores() {
   );
 }
 
+function plotAtividadeRecente() {
+  const atividade = dados.recent_activity;
+  const autores = [...atividade.authors].reverse();
+  Plotly.newPlot(
+    "grafico-atividade-recente",
+    [
+      {
+        type: "bar",
+        orientation: "h",
+        name: `Últimos ${atividade.short_window_days} dias`,
+        x: autores.map((a) => a.commits_short_window),
+        y: autores.map((a) => a.author_name),
+        marker: { color: CORES.primaria },
+        hovertemplate: "%{y}: %{x} commits<extra></extra>",
+      },
+      {
+        type: "bar",
+        orientation: "h",
+        name: `${atividade.short_window_days + 1}–${atividade.long_window_days} dias atrás`,
+        x: autores.map((a) => Math.max(a.commits_long_window - a.commits_short_window, 0)),
+        y: autores.map((a) => a.author_name),
+        marker: { color: CORES.primariaClara },
+        hovertemplate: "%{y}: %{x} commits<extra></extra>",
+      },
+    ],
+    { ...layoutBase, barmode: "stack", legend: { orientation: "h", y: -0.15 } },
+    { responsive: true, displayModeBar: false }
+  );
+}
+
 function plotTipos() {
   Plotly.newPlot(
     "grafico-tipos",
@@ -199,6 +229,7 @@ function plotExtensoes() {
 
 plotAutores();
 plotAcumulado();
+plotAtividadeRecente();
 plotTipos();
 plotTiposPorAutor();
 plotTimeline();

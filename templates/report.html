@@ -177,6 +177,78 @@
   </p>
 </section>
 
+<section class="mb-5" id="atividade-recente">
+  <h2 class="h5 text-uppercase text-secondary mb-3">Atividade recente</h2>
+  <p class="text-secondary small mb-3">
+    Commits por autor nos últimos {{ report.recent_activity.short_window_days }} e
+    {{ report.recent_activity.long_window_days }} dias corridos <strong>a partir de agora</strong>
+    (não do último commit do repositório) — útil para ver quem está trabalhando perto da entrega
+    e quem deixou tudo para os últimos dias.
+  </p>
+  <div class="card chart-card border-0 mb-3">
+    <div class="card-header">
+      Commits nos últimos {{ report.recent_activity.long_window_days }} dias, por autor
+    </div>
+    <div class="card-body">
+      <div id="grafico-atividade-recente" class="grafico"></div>
+    </div>
+  </div>
+  <div class="row row-cols-1 row-cols-md-2 g-3">
+    {% for autor in report.recent_activity.authors %}
+    <div class="col">
+      <div class="card h-100 border-0">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+            <div>
+              <div class="fw-semibold">{{ autor.author_name }}</div>
+              <div class="text-secondary small">{{ autor.author_email }}</div>
+            </div>
+            <div class="d-flex gap-1 flex-shrink-0">
+              <span class="badge rounded-pill text-bg-primary fw-normal" title="Commits nos últimos {{ report.recent_activity.short_window_days }} dias">
+                {{ autor.commits_short_window }} em {{ report.recent_activity.short_window_days }}d
+              </span>
+              <span class="badge rounded-pill text-bg-secondary fw-normal" title="Commits nos últimos {{ report.recent_activity.long_window_days }} dias">
+                {{ autor.commits_long_window }} em {{ report.recent_activity.long_window_days }}d
+              </span>
+            </div>
+          </div>
+
+          {% if autor.commits_long_window == 0 %}
+          <p class="text-secondary small mb-0">
+            Sem commits nos últimos {{ report.recent_activity.long_window_days }} dias.
+            Último commit há {{ autor.days_since_last_commit }} dia(s), em
+            {{ autor.last_commit_at.strftime("%d/%m/%Y") }}.
+          </p>
+          {% else %}
+          <p class="text-secondary small mb-2">
+            Ativo em {{ autor.active_days_long_window }} dia(s) distintos nos últimos
+            {{ report.recent_activity.long_window_days }}. Linhas +/−:
+            {{ autor.insertions_long_window }} / {{ autor.deletions_long_window }}.
+            Último commit há {{ autor.days_since_last_commit }} dia(s).
+          </p>
+          <ul class="list-unstyled small mb-0">
+            {% for msg in autor.recent_messages %}
+            <li class="mb-1 text-truncate">
+              <code class="text-secondary">{{ msg.sha_short }}</code>
+              <span class="text-secondary">{{ msg.date }}</span>
+              — {{ msg.summary }}
+            </li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% if report.recent_activity.truncated %}
+  <p class="small text-secondary mt-3">
+    Mostrando os {{ report.recent_activity.authors|length }} autores mais ativos de
+    {{ report.summary.total_authors }} no total.
+  </p>
+  {% endif %}
+</section>
+
 <section class="mb-5" id="tipos">
   <h2 class="h5 text-uppercase text-secondary mb-3">Classificação por tipo de commit</h2>
   <div class="row g-3">
