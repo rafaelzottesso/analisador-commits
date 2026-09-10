@@ -102,14 +102,19 @@ pytest
 
 ### Deploy no Google Cloud Run
 O repositório já está preparado para deploy no Cloud Run com `.gcloudignore`, `.dockerignore` e Dockerfile otimizado:
-```powershell
-# Via script auxiliar no Windows:
-.\deploy.ps1 -ProjectId "seu-id-do-gcp"
+```bash
+# Configuração local (definir projeto e conta em .env a partir de .env.example)
+# Deploy automatizado (valida pytest, lê .env/gcloud e implanta na região us-east1):
+python deploy.py
+
+# Simulação dos comandos sem executar:
+python deploy.py --dry-run
 
 # Ou comando direto via gcloud:
 gcloud run deploy analisador-commits \
   --source . \
-  --region southamerica-east1 \
+  --project "seu-id-do-gcp" \
+  --region us-east1 \
   --allow-unauthenticated \
   --memory 1Gi \
   --cpu 1 \

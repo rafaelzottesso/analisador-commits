@@ -80,18 +80,31 @@ não dependem de rede.
 Pensado para o **Google Cloud Run** (container Docker, escala a zero, sem banco).
 O repositório já inclui `Dockerfile`, `.dockerignore` e `.gcloudignore` prontos.
 
-No Windows (PowerShell), utilize o script auxiliar:
+Para configurar o deploy, copie `.env.example` para `.env` e defina seu projeto e conta:
 
-```powershell
-.\deploy.ps1 -ProjectId "seu-projeto-gcp"
+```bash
+cp .env.example .env
 ```
 
-Ou execute o comando diretamente via Google Cloud SDK:
+Para deploy automatizado com validação prévia de testes e configuração da conta/projeto:
+
+```bash
+python deploy.py
+```
+
+Você também pode verificar o que será executado antes com o modo dry-run:
+
+```bash
+python deploy.py --dry-run
+```
+
+Ou executar o comando diretamente via Google Cloud SDK:
 
 ```bash
 gcloud run deploy analisador-commits \
   --source . \
-  --region southamerica-east1 \
+  --project "seu-projeto-gcp" \
+  --region us-east1 \
   --allow-unauthenticated \
   --memory 1Gi \
   --cpu 1 \
