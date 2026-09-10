@@ -88,3 +88,10 @@ class TestCheckRepoSize:
         with patch("services.validators.urlopen", side_effect=error):
             with pytest.raises(CloneError, match="Não foi possível acessar"):
                 check_repo_size(repo)
+
+    def test_timeout_na_leitura_da_resposta(self) -> None:
+        """urllib não envolve em URLError o timeout que estoura em getresponse()."""
+        repo = parse_github_url("https://github.com/owner/repo")
+        with patch("services.validators.urlopen", side_effect=TimeoutError("timed out")):
+            with pytest.raises(CloneError, match="Não foi possível acessar"):
+                check_repo_size(repo)

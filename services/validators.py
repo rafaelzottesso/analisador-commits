@@ -84,7 +84,10 @@ def check_repo_size(repo: GitHubRepo) -> int:
                 "Verifique se a URL está correta e se o repositório é público."
             ) from exc
         raise
-    except URLError as exc:
+    except (URLError, TimeoutError) as exc:
+        # TimeoutError "puro" acontece quando o timeout estoura durante a
+        # leitura da resposta (h.getresponse()): urllib só converte para
+        # URLError os erros no envio da requisição, não na leitura.
         raise CloneError(
             "Não foi possível acessar este repositório. "
             "Verifique se a URL está correta e se o repositório é público."
