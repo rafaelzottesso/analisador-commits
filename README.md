@@ -21,7 +21,7 @@ No Windows (PowerShell):
 ```powershell
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-flask --app app run
+python run.py
 ```
 
 No Linux/macOS:
@@ -29,20 +29,21 @@ No Linux/macOS:
 ```bash
 source .venv/bin/activate
 pip install -r requirements.txt
-flask --app app run
+python run.py
 ```
 
-Abra http://127.0.0.1:5000 e cole a URL de um repositório público.
+Abra http://127.0.0.1:8080 e cole a URL de um repositório público.
 
-### Rodar em porta específica (ex.: 8080)
-
-Para definir uma porta diferente da padrão (5000), utilize a flag `--port`:
+O script `run.py` executa o projeto na porta **8080** por padrão. Se desejar especificar outra porta ou utilizar o Flask CLI:
 
 ```bash
+# Porta customizada via run.py:
+python run.py 5000
+
+# Ou via Flask CLI tradicional:
 flask --app app run --port 8080
 ```
 
-E acesse em http://127.0.0.1:8080.
 
 Variável opcional: copie `.env.example` para `.env` e defina
 `GITHUB_TOKEN` se a cota da API pública do GitHub (checagem de tamanho)

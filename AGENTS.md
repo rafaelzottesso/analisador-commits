@@ -86,10 +86,11 @@ pip install -r requirements.txt
 
 ### Execução Local
 ```bash
-# Execução padrão (porta 5000)
-flask --app app run
+# Execução simplificada (porta 8080 por padrão)
+python run.py
 
-# Execução em porta específica (ex.: 8080)
+# Execução em porta customizada via run.py ou Flask CLI
+python run.py 5000
 flask --app app run --port 8080
 ```
 
