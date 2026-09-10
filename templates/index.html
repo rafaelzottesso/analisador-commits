@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Analisador de Commits{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <h1 class="h3 mb-3">Analisar repositório GitHub</h1>
+    <p class="text-secondary">
+      Cole a URL de um repositório <strong>público</strong> do GitHub para gerar um
+      relatório sobre o histórico de commits: participação, tipos Conventional
+      Commits, linha do tempo e arquivos mais alterados. Nada é armazenado após
+      a análise. Repositórios muito grandes podem não ser suportados.
+    </p>
+
+    <form id="form-analise" action="{{ url_for('analyzer.analisar') }}" method="post">
+      <div class="mb-3">
+        <label for="url" class="form-label">URL do repositório</label>
+        <input
+          class="form-control"
+          type="url"
+          id="url"
+          name="url"
+          required
+          autocomplete="url"
+          inputmode="url"
+          enterkeyhint="go"
+          placeholder="https://github.com/usuario/repositorio"
+          aria-describedby="url-ajuda"
+        >
+        <div id="url-ajuda" class="form-text">
+          Use o formato https://github.com/usuario/repositorio
+        </div>
+      </div>
+      <button id="botao-analisar" type="submit" class="btn btn-primary">Analisar</button>
+    </form>
+
+    <div id="estado-carga" class="mt-4" hidden>
+      <div class="d-flex align-items-center gap-3">
+        <progress class="loading-spinner" aria-label="Analisando repositório"></progress>
+        <p class="mb-0" aria-live="polite">
+          Analisando repositório, isso pode levar até um minuto…
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/form.js') }}"></script>
+{% endblock %}

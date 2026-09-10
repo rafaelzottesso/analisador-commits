@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Relatório — Analisador de Commits{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+  <div>
+    <h1 class="h3 mb-1">Relatório de commits</h1>
+    <p class="mb-1">
+      Repositório:
+      <a href="{{ report.repo_url }}" rel="noopener noreferrer">{{ report.repo_url }}</a>
+    </p>
+    <p class="text-secondary mb-0">
+      Análise gerada em {{ report.generated_at.strftime("%d/%m/%Y %H:%M UTC") }}
+    </p>
+  </div>
+  <a class="btn btn-outline-primary" href="{{ url_for('analyzer.index') }}">Analisar outro repositório</a>
+</div>
+
+{% if report.summary.analysis_limited %}
+<div class="alert alert-info">
+  A análise foi limitada aos {{ report.summary.max_commits_limit }} commits mais recentes.
+</div>
+{% endif %}
+
+<section class="mb-5" id="resumo">
+  <h2 class="h4 mb-3">Resumo executivo</h2>
+  <div class="row g-3">
+    <div class="col-6 col-lg-3">
+      <div class="card h-100"><div class="card-body">
+        <div class="text-secondary small">Commits</div>
+        <div class="fs-3">{{ report.summary.total_commits }}</div>
+      </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card h-100"><div class="card-body">
+        <div class="text-secondary small">Autores</div>
+        <div class="fs-3">{{ report.summary.total_authors }}</div>
+      </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card h-100"><div class="card-body">
+        <div class="text-secondary small">Aderência Conventional</div>
+        <div class="fs-3">{{ report.summary.conventional_adherence_pct }}%</div>
+      </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card h-100"><div class="card-body">
+        <div class="text-secondary small">Linhas + / −</div>
+        <div class="fs-3">{{ report.summary.total_insertions }} / {{ report.summary.total_deletions }}</div>
+      </div></div>
+    </div>
+  </div>
+  <p class="text-secondary mt-3 mb-0">
+    Período: {{ report.summary.period_start.strftime("%d/%m/%Y") }}
+    a {{ report.summary.period_end.strftime("%d/%m/%Y") }}.
+    {{ report.summary.merge_commits }} merge(s) e
+    {{ report.summary.direct_commits }} commit(s) direto(s).
+    Autores agrupados por e-mail; a mesma pessoa pode aparecer mais de uma vez se usou e-mails diferentes.
+  </p>
+</section>
+
+<section class="mb-5" id="autores">
+  <h2 class="h4 mb-3">Participação por autor</h2>
+  <div id="grafico-autores" class="grafico mb-3"></div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead>
+        <tr>
+          <th>Autor</th>
+          <th>E-mail</th>
+          <th>Commits</th>
+          <th>%</th>
+          <th>Linhas +/−</th>
+          <th>Primeiro</th>
+          <th>Último</th>
+          <th>Tipos mais usados</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for autor in report.authors %}
+        <tr class="{% if autor.low_participation %}table-warning{% endif %}">
+          <td>{{ autor.name }}</td>
+          <td>{{ autor.email }}</td>
+          <td>{{ autor.commit_count }}</td>
+          <td>{{ autor.commit_pct }}%</td>
+          <td>{{ autor.insertions }} / {{ autor.deletions }}</td>
+          <td>{{ autor.first_commit_at.strftime("%d/%m/%Y") }}</td>
+          <td>{{ autor.last_commit_at.strftime("%d/%m/%Y") }}</td>
+          <td>
+            {% for tipo in autor.top_commit_types[:3] %}
+              {{ tipo.commit_type }} ({{ tipo.count }}){% if not loop.last %}, {% endif %}
+            {% endfor %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="small text-secondary">Linhas destacadas indicam participação abaixo do limiar configurado, para o professor investigar — não é um julgamento automático.</p>
+</section>
+
+<section class="mb-5" id="tipos">
+  <h2 class="h4 mb-3">Classificação por tipo de commit</h2>
+  <div class="row">
+    <div class="col-lg-6"><div id="grafico-tipos" class="grafico"></div></div>
+    <div class="col-lg-6"><div id="grafico-tipos-autor" class="grafico"></div></div>
+  </div>
+  <p class="text-secondary">
+    {{ report.commit_types.with_scope_count }} commit(s) especificam escopo.
+    {% if report.commit_types.top_scopes %}
+      Escopos mais frequentes:
+      {% for escopo in report.commit_types.top_scopes[:5] %}
+        {{ escopo.scope }} ({{ escopo.count }}){% if not loop.last %}, {% endif %}
+      {% endfor %}.
+    {% endif %}
+  </p>
+</section>
+
+<section class="mb-5" id="timeline">
+  <h2 class="h4 mb-3">Linha do tempo</h2>
+  <div id="grafico-timeline" class="grafico"></div>
+  <p class="small text-secondary">{{ report.timeline.note }}</p>
+</section>
+
+<section class="mb-5" id="heatmap">
+  <h2 class="h4 mb-3">Padrão horário e semanal</h2>
+  <div id="grafico-heatmap" class="grafico"></div>
+  <p class="small text-secondary">{{ report.time_heatmap.note }}</p>
+</section>
+
+<section class="mb-5" id="hotspots">
+  <h2 class="h4 mb-3">Arquivos e hotspots</h2>
+  <div class="row">
+    <div class="col-lg-6"><div id="grafico-arquivos" class="grafico"></div></div>
+    <div class="col-lg-6"><div id="grafico-extensoes" class="grafico"></div></div>
+  </div>
+  <div class="table-responsive mt-3">
+    <table class="table table-sm">
+      <thead>
+        <tr>
+          <th>Arquivo</th>
+          <th>Commits</th>
+          <th>Linhas alteradas</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for arquivo in report.file_hotspots.top_by_commits %}
+        <tr>
+          <td><code>{{ arquivo.path }}</code></td>
+          <td>{{ arquivo.commit_count }}</td>
+          <td>{{ arquivo.total_changed }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="mb-5" id="atencao">
+  <h2 class="h4 mb-3">Pontos de atenção</h2>
+  {% if report.attention_flags %}
+    <ul class="list-group">
+      {% for flag in report.attention_flags %}
+      <li class="list-group-item list-group-item-light">{{ flag.message }}</li>
+      {% endfor %}
+    </ul>
+    <p class="small text-secondary mt-2 mb-0">Observações para investigação, não vereditos sobre o grupo.</p>
+  {% else %}
+    <p>Nenhum ponto de atenção automático foi destacado neste histórico.</p>
+  {% endif %}
+</section>
+
+<script id="report-data" type="application/json">{{ report_json | tojson }}</script>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/report.js') }}"></script>
+{% endblock %}

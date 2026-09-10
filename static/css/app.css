@@ -1,0 +1,61 @@
+body {
+  background: #f7f8fa;
+}
+
+.grafico {
+  min-height: 320px;
+}
+
+progress.loading-spinner:indeterminate::-webkit-progress-bar {
+  display: none;
+  background: none;
+}
+
+progress.loading-spinner:indeterminate::-webkit-progress-value {
+  display: none;
+  background: none;
+}
+
+progress.loading-spinner:indeterminate::-moz-progress-bar {
+  display: none;
+  background: none;
+}
+
+progress.loading-spinner:indeterminate {
+  --size: 2.5rem;
+  --thickness: 3px;
+  --spinner-color: #0d6efd;
+  --track-color: #d9dee3;
+  --_used-spinner-duration: 1.5s;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  appearance: none;
+  background: conic-gradient(from 90deg, var(--spinner-color) 120deg, transparent 0)
+    var(--track-color);
+  mask-image: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--thickness)),
+    black calc(100% - var(--thickness))
+  );
+  animation: progress-spin var(--_used-spinner-duration) linear infinite;
+}
+
+@keyframes progress-spin {
+  to {
+    rotate: 1turn;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  progress.loading-spinner {
+    --_used-spinner-duration: 6s;
+  }
+}
+
+input:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #0b57d0;
+  outline-offset: 2px;
+}
