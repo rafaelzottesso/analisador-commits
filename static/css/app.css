@@ -1,10 +1,275 @@
+/* ---------------------------------------------------------------------
+   Analisador de Commits — tema visual
+   Construído sobre variáveis do Bootstrap 5.3 (color modes + CSS vars),
+   evitando reescrever componentes: a maior parte do layout continua
+   vindo das classes utilitárias do Bootstrap.
+   --------------------------------------------------------------------- */
+
+:root {
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-heading: "Sora", var(--font-body);
+
+  --brand-primary: #4f46e5;
+  --brand-primary-rgb: 79, 70, 229;
+  --brand-primary-hover: #4338ca;
+  --brand-primary-active: #3730a3;
+  --brand-accent: #0d9488;
+  --brand-accent-rgb: 13, 148, 136;
+
+  color-scheme: light;
+
+  --bs-font-sans-serif: var(--font-body);
+  --bs-body-bg: #f6f6fb;
+  --bs-tertiary-bg: #eeeef8;
+  --bs-body-color: #292a3d;
+  --bs-secondary-color: #62637c;
+  --bs-border-color: #e2e2f0;
+  --bs-border-radius: 0.9rem;
+  --bs-border-radius-sm: 0.6rem;
+  --bs-border-radius-lg: 1.1rem;
+  --bs-border-radius-xl: 1.5rem;
+
+  --bs-primary: var(--brand-primary);
+  --bs-primary-rgb: var(--brand-primary-rgb);
+  --bs-primary-bg-subtle: #ebe9fd;
+  --bs-primary-border-subtle: #cfc9fa;
+  --bs-primary-text-emphasis: #3d35b8;
+
+  --bs-link-color: var(--brand-primary);
+  --bs-link-color-rgb: var(--brand-primary-rgb);
+  --bs-link-hover-color: var(--brand-primary-hover);
+  --bs-link-hover-color-rgb: 67, 56, 202;
+
+  --bs-focus-ring-color: rgba(var(--brand-primary-rgb), 0.25);
+
+  --bs-card-bg: #ffffff;
+  --bs-card-border-color: var(--bs-border-color);
+
+  --shadow-soft: 0 1px 2px rgba(20, 20, 40, 0.04), 0 8px 24px -12px rgba(20, 20, 40, 0.12);
+  --shadow-soft-lg: 0 12px 32px -16px rgba(20, 20, 40, 0.22);
+}
+
+[data-bs-theme="dark"] {
+  color-scheme: dark;
+
+  --brand-primary: #9b8ffb;
+  --brand-primary-rgb: 155, 143, 251;
+  --brand-primary-hover: #ada2fc;
+  --brand-primary-active: #bcb3fd;
+  --brand-accent: #2dd4bf;
+  --brand-accent-rgb: 45, 212, 191;
+
+  --bs-body-bg: #131320;
+  --bs-tertiary-bg: #1b1b2c;
+  --bs-body-color: #e7e7f4;
+  --bs-secondary-color: #a4a4c1;
+  --bs-border-color: #2a2a42;
+
+  --bs-primary: var(--brand-primary);
+  --bs-primary-rgb: var(--brand-primary-rgb);
+  --bs-primary-bg-subtle: #262146;
+  --bs-primary-border-subtle: #38316b;
+  --bs-primary-text-emphasis: #c7bffc;
+
+  --bs-link-color: var(--brand-primary);
+  --bs-link-color-rgb: var(--brand-primary-rgb);
+  --bs-link-hover-color: var(--brand-primary-active);
+  --bs-link-hover-color-rgb: 188, 179, 253;
+
+  --bs-focus-ring-color: rgba(var(--brand-primary-rgb), 0.35);
+
+  --bs-card-bg: #191929;
+  --bs-card-border-color: var(--bs-border-color);
+
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  --shadow-soft-lg: 0 16px 40px -18px rgba(0, 0, 0, 0.65);
+}
+
 body {
-  background: #f7f8fa;
+  background:
+    radial-gradient(1200px 480px at 50% -10%, rgba(var(--brand-primary-rgb), 0.10), transparent),
+    var(--bs-body-bg);
+  min-height: 100dvh;
+}
+
+h1, h2, h3, h4, h5, h6,
+.font-heading {
+  font-family: var(--font-heading);
+  letter-spacing: -0.01em;
+}
+
+/* ---------- Header ---------- */
+
+.app-header {
+  backdrop-filter: saturate(180%) blur(10px);
+  background-color: rgba(var(--bs-body-bg-rgb, 246, 246, 251), 0.75);
+}
+
+[data-bs-theme="dark"] .app-header {
+  background-color: rgba(19, 19, 32, 0.75);
+}
+
+.brand-mark {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.7rem;
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-accent));
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-soft);
+}
+
+.theme-toggle {
+  --bs-btn-padding-x: 0.6rem;
+  --bs-btn-padding-y: 0.4rem;
+}
+
+.theme-toggle .bi-moon-stars-fill { display: none; }
+[data-bs-theme="dark"] .theme-toggle .bi-sun-fill { display: none; }
+[data-bs-theme="dark"] .theme-toggle .bi-moon-stars-fill { display: inline-block; }
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  font-weight: 600;
+  border-radius: var(--bs-border-radius-sm);
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--brand-primary);
+  --bs-btn-border-color: var(--brand-primary);
+  --bs-btn-hover-bg: var(--brand-primary-hover);
+  --bs-btn-hover-border-color: var(--brand-primary-hover);
+  --bs-btn-active-bg: var(--brand-primary-active);
+  --bs-btn-active-border-color: var(--brand-primary-active);
+  --bs-btn-disabled-bg: var(--brand-primary);
+  --bs-btn-disabled-border-color: var(--brand-primary);
+  --bs-btn-focus-shadow-rgb: var(--brand-primary-rgb);
+  box-shadow: var(--shadow-soft);
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--brand-primary);
+  --bs-btn-border-color: var(--brand-primary);
+  --bs-btn-hover-bg: var(--brand-primary);
+  --bs-btn-hover-border-color: var(--brand-primary);
+  --bs-btn-active-bg: var(--brand-primary-hover);
+  --bs-btn-active-border-color: var(--brand-primary-hover);
+  --bs-btn-focus-shadow-rgb: var(--brand-primary-rgb);
+}
+
+.btn-lg {
+  border-radius: var(--bs-border-radius);
+}
+
+/* ---------- Forms ---------- */
+
+.form-control,
+.form-select {
+  background-color: var(--bs-card-bg);
+  border-color: var(--bs-border-color);
+  padding-top: 0.65rem;
+  padding-bottom: 0.65rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
+}
+
+.form-control-lg {
+  border-radius: var(--bs-border-radius);
+}
+
+input:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Cards ---------- */
+
+.card {
+  box-shadow: var(--shadow-soft);
+}
+
+.card-hero {
+  border-radius: var(--bs-border-radius-xl);
+  box-shadow: var(--shadow-soft-lg);
+}
+
+.stat-card {
+  border-radius: var(--bs-border-radius-lg);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft-lg);
+}
+
+.stat-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.chart-card .card-header {
+  background: transparent;
+  border-bottom: 1px solid var(--bs-border-color);
+  font-family: var(--font-heading);
+  font-weight: 600;
 }
 
 .grafico {
   min-height: 320px;
 }
+
+/* ---------- Landing hero / quick actions ---------- */
+
+.hero-eyebrow {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--brand-primary);
+}
+
+.trust-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.trust-list .bi {
+  color: var(--brand-accent);
+  margin-top: 0.15rem;
+}
+
+.quickfill-toggle {
+  color: var(--bs-secondary-color);
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.repo-preview {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  background: var(--bs-tertiary-bg);
+  border: 1px dashed var(--bs-border-color);
+  border-radius: var(--bs-border-radius-sm);
+}
+
+/* ---------- Loading state ---------- */
 
 progress.loading-spinner:indeterminate::-webkit-progress-bar {
   display: none;
@@ -24,8 +289,8 @@ progress.loading-spinner:indeterminate::-moz-progress-bar {
 progress.loading-spinner:indeterminate {
   --size: 2.5rem;
   --thickness: 3px;
-  --spinner-color: #0d6efd;
-  --track-color: #d9dee3;
+  --spinner-color: var(--brand-primary);
+  --track-color: var(--bs-border-color);
   --_used-spinner-duration: 1.5s;
   width: var(--size);
   height: var(--size);
@@ -51,11 +316,18 @@ progress.loading-spinner:indeterminate {
   progress.loading-spinner {
     --_used-spinner-duration: 6s;
   }
+  .stat-card {
+    transition: none;
+  }
 }
 
-input:focus-visible,
-button:focus-visible,
-a:focus-visible {
-  outline: 3px solid #0b57d0;
-  outline-offset: 2px;
+/* ---------- Misc ---------- */
+
+.table > :not(caption) > * > * {
+  background-color: transparent;
+}
+
+.app-footer {
+  border-top: 1px solid var(--bs-border-color);
+  color: var(--bs-secondary-color);
 }

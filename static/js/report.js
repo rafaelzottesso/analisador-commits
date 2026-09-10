@@ -4,11 +4,22 @@ if (!fonte) {
 }
 
 const dados = JSON.parse(fonte.textContent);
+
+const CORES = {
+  primaria: "#6d5ef8",
+  primariaClara: "#a99cfc",
+  destaque: "#0d9488",
+  alerta: "#dc3545",
+  neutro: "#6b7280",
+  paleta: ["#6d5ef8", "#0d9488", "#f59e0b", "#dc3545", "#0ea5e9", "#a99cfc", "#22c55e", "#ec4899"],
+};
+
 const layoutBase = {
-  margin: { t: 32, r: 16, b: 48, l: 80 },
+  margin: { t: 16, r: 16, b: 48, l: 80 },
   paper_bgcolor: "rgba(0,0,0,0)",
   plot_bgcolor: "rgba(0,0,0,0)",
-  font: { family: "system-ui, sans-serif" },
+  font: { family: "Inter, system-ui, sans-serif", color: CORES.neutro },
+  colorway: CORES.paleta,
 };
 
 function plotAutores() {
@@ -21,11 +32,11 @@ function plotAutores() {
         orientation: "h",
         x: autores.map((a) => a.commit_count),
         y: autores.map((a) => a.name),
-        marker: { color: "#0d6efd" },
+        marker: { color: CORES.primaria },
         hovertemplate: "%{y}: %{x} commits<extra></extra>",
       },
     ],
-    { ...layoutBase, title: "Commits por autor" },
+    { ...layoutBase },
     { responsive: true, displayModeBar: false }
   );
 }
@@ -38,11 +49,12 @@ function plotTipos() {
         type: "pie",
         labels: dados.commit_types.types.map((t) => t.commit_type),
         values: dados.commit_types.types.map((t) => t.count),
-        hole: 0.35,
+        hole: 0.45,
+        marker: { colors: CORES.paleta },
         hovertemplate: "%{label}: %{value} (%{percent})<extra></extra>",
       },
     ],
-    { ...layoutBase, margin: { t: 32, r: 16, b: 16, l: 16 }, title: "Tipos de commit" },
+    { ...layoutBase, margin: { t: 8, r: 8, b: 8, l: 8 } },
     { responsive: true, displayModeBar: false }
   );
 }
@@ -64,7 +76,7 @@ function plotTiposPorAutor() {
   Plotly.newPlot(
     "grafico-tipos-autor",
     traces,
-    { ...layoutBase, barmode: "stack", title: "Tipo por autor", margin: { t: 32, r: 16, b: 64, l: 48 } },
+    { ...layoutBase, barmode: "stack", margin: { t: 8, r: 16, b: 64, l: 48 } },
     { responsive: true, displayModeBar: false }
   );
 }
@@ -79,15 +91,15 @@ function plotTimeline() {
         mode: "lines+markers",
         x: pontos.map((p) => p.date),
         y: pontos.map((p) => p.count),
-        line: { color: "#0d6efd" },
+        line: { color: CORES.primaria },
         marker: {
           size: pontos.map((p) => (p.is_outlier ? 10 : 6)),
-          color: pontos.map((p) => (p.is_outlier ? "#dc3545" : "#0d6efd")),
+          color: pontos.map((p) => (p.is_outlier ? CORES.alerta : CORES.primaria)),
         },
         hovertemplate: "%{x}: %{y} commits<extra></extra>",
       },
     ],
-    { ...layoutBase, title: "Commits por dia", margin: { t: 32, r: 16, b: 48, l: 48 } },
+    { ...layoutBase, margin: { t: 8, r: 16, b: 48, l: 48 } },
     { responsive: true, displayModeBar: false }
   );
 }
@@ -102,11 +114,14 @@ function plotHeatmap() {
         z: dados.time_heatmap.matrix,
         x: horas,
         y: dados.time_heatmap.weekday_labels,
-        colorscale: "Blues",
+        colorscale: [
+          [0, "rgba(109, 94, 248, 0.08)"],
+          [1, CORES.primaria],
+        ],
         hovertemplate: "%{y} %{x}: %{z} commits<extra></extra>",
       },
     ],
-    { ...layoutBase, title: "Heatmap dia × hora", margin: { t: 32, r: 16, b: 48, l: 80 } },
+    { ...layoutBase, margin: { t: 8, r: 16, b: 48, l: 80 } },
     { responsive: true, displayModeBar: false }
   );
 }
@@ -121,11 +136,11 @@ function plotArquivos() {
         orientation: "h",
         x: arquivos.map((a) => a.commit_count),
         y: arquivos.map((a) => a.path),
-        marker: { color: "#198754" },
+        marker: { color: CORES.destaque },
         hovertemplate: "%{y}: %{x} commits<extra></extra>",
       },
     ],
-    { ...layoutBase, title: "Arquivos mais tocados" },
+    { ...layoutBase },
     { responsive: true, displayModeBar: false }
   );
 }
@@ -138,10 +153,11 @@ function plotExtensoes() {
         type: "pie",
         labels: dados.file_hotspots.by_extension.map((e) => e.extension),
         values: dados.file_hotspots.by_extension.map((e) => e.total_changed),
+        marker: { colors: CORES.paleta },
         hovertemplate: "%{label}: %{value} linhas<extra></extra>",
       },
     ],
-    { ...layoutBase, margin: { t: 32, r: 16, b: 16, l: 16 }, title: "Esforço por extensão" },
+    { ...layoutBase, margin: { t: 8, r: 8, b: 8, l: 8 } },
     { responsive: true, displayModeBar: false }
   );
 }
