@@ -1,8 +1,12 @@
 .venv
 .git
 .cursor
+.serena
 __pycache__
 .pytest_cache
 *.pyc
 .env
 planejamento
+tests
+.gcloudignore
+

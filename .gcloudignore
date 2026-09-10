@@ -1,0 +1,15 @@
+# Arquivos e pastas ignorados no upload para o Google Cloud Build / Cloud Run
+.gcloudignore
+.git/
+.gitignore
+.venv/
+venv/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+.env
+planejamento/
+tests/
+.cursor/
+.serena/
+*.log
