@@ -1,0 +1,30 @@
+[
+  {
+    "name": "keep-latest-tag",
+    "action": {
+      "type": "Keep"
+    },
+    "condition": {
+      "tagState": "TAGGED",
+      "tagPrefixes": ["latest"]
+    }
+  },
+  {
+    "name": "keep-most-recent",
+    "action": {
+      "type": "Keep"
+    },
+    "mostRecentVersions": {
+      "keepCount": 1
+    }
+  },
+  {
+    "name": "delete-other-images",
+    "action": {
+      "type": "Delete"
+    },
+    "condition": {
+      "tagState": "ANY"
+    }
+  }
+]
