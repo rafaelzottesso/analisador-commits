@@ -219,3 +219,13 @@ class ReportData:
     attention_flags: list[AttentionFlag]
     repo_url: str
     generated_at: datetime
+
+    @property
+    def generated_at_sp(self) -> datetime:
+        """Data e hora de geração no fuso horário de São Paulo (UTC-3)."""
+        from datetime import timedelta, timezone
+        fuso_sp = timezone(timedelta(hours=-3))
+        if self.generated_at.tzinfo is None:
+            return self.generated_at.replace(tzinfo=timezone.utc).astimezone(fuso_sp)
+        return self.generated_at.astimezone(fuso_sp)
+

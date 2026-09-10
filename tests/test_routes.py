@@ -40,3 +40,5 @@ def test_renderiza_relatorio(client) -> None:
     assert "Participação por autor" in html
     assert "Pontos de atenção" in html
     assert "grafico-heatmap" in html
+    assert "(UTC-3)" in html
+

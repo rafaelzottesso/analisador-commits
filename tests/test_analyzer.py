@@ -222,3 +222,10 @@ class TestBuildReport:
         acumulados = [p.cumulative_commits for p in serie.points]
         assert acumulados == sorted(acumulados)
         assert acumulados[-1] == 3
+
+    def test_fuso_horario_sao_paulo(self) -> None:
+        commits = [_commit("feat: a", dia=15)]
+        relatorio = build_report(commits, "https://github.com/o/r")
+        assert relatorio.generated_at_sp.tzinfo is not None
+        assert relatorio.generated_at_sp.utcoffset() == timedelta(hours=-3)
+

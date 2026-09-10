@@ -69,8 +69,9 @@ def build_report(
         file_hotspots=_hotspots(commits),
         attention_flags=_pontos_de_atencao(commits),
         repo_url=repo_url,
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(timezone(timedelta(hours=-3))),
     )
+
 
 
 def _tipo(commit: Commit) -> str:
