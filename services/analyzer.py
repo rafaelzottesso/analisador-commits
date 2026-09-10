@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter, defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -14,9 +14,12 @@ from models.commit import (
     AttentionFlag,
     AuthorCount,
     AuthorStats,
+    AuthorTimelineSeries,
     AuthorTypeCount,
     Commit,
+    CommitSizeBucket,
     CommitTypeStats,
+    CumulativePoint,
     ExtensionStats,
     FileAuthorCross,
     FileHotspotStats,
@@ -58,8 +61,10 @@ def build_report(
     return ReportData(
         summary=_resumo(commits, analysis_limited),
         authors=_autores(commits),
+        cumulative_contribution=_contribuicao_acumulada(commits),
         commit_types=_tipos(commits),
         timeline=_linha_do_tempo(commits),
+        commit_size_buckets=_tamanho_commits(commits),
         time_heatmap=_heatmap(commits),
         file_hotspots=_hotspots(commits),
         attention_flags=_pontos_de_atencao(commits),
@@ -86,11 +91,19 @@ def _percentual(parte: int, total: int) -> float:
     return round(100.0 * parte / total, 1)
 
 
+def _janela_final(commits: list[Commit], horas: int) -> list[Commit]:
+    """Commits dentro das últimas `horas` a partir do commit mais recente."""
+    fim = max(commit.committed_at for commit in commits)
+    limite = fim - timedelta(hours=horas)
+    return [commit for commit in commits if commit.committed_at >= limite]
+
+
 def _resumo(commits: list[Commit], limitado: bool) -> SummaryStats:
     emails = {commit.author_email for commit in commits}
     insercoes = remocoes = 0
     merges = 0
     conventional = 0
+    com_coautoria = 0
     for commit in commits:
         ins, dele = _linhas(commit)
         insercoes += ins
@@ -99,8 +112,11 @@ def _resumo(commits: list[Commit], limitado: bool) -> SummaryStats:
             merges += 1
         if commit.is_conventional:
             conventional += 1
+        if commit.co_authors:
+            com_coautoria += 1
 
     datas = [commit.committed_at for commit in commits]
+    janela = _janela_final(commits, config.LAST_WINDOW_HOURS)
     return SummaryStats(
         total_commits=len(commits),
         total_authors=len(emails),
@@ -113,6 +129,10 @@ def _resumo(commits: list[Commit], limitado: bool) -> SummaryStats:
         direct_commits=len(commits) - merges,
         analysis_limited=limitado,
         max_commits_limit=config.MAX_COMMITS if limitado else None,
+        commits_with_coauthors=com_coautoria,
+        last_window_commits=len(janela),
+        last_window_pct=_percentual(len(janela), len(commits)),
+        last_window_hours=config.LAST_WINDOW_HOURS,
     )
 
 
@@ -120,6 +140,11 @@ def _autores(commits: list[Commit]) -> list[AuthorStats]:
     por_email: dict[str, list[Commit]] = defaultdict(list)
     for commit in commits:
         por_email[commit.author_email].append(commit)
+
+    coautoria_count: Counter[str] = Counter()
+    for commit in commits:
+        for coautor in commit.co_authors:
+            coautoria_count[coautor.email] += 1
 
     total = len(commits)
     n_autores = len(por_email)
@@ -154,11 +179,44 @@ def _autores(commits: list[Commit]) -> list[AuthorStats]:
                     for tipo, qtd in tipos.most_common()
                 ],
                 low_participation=pct < limiar,
+                coauthored_commit_count=coautoria_count.get(email, 0),
             )
         )
 
     resultado.sort(key=lambda autor: autor.commit_count, reverse=True)
     return resultado
+
+
+def _contribuicao_acumulada(commits: list[Commit]) -> list[AuthorTimelineSeries]:
+    """Commits acumulados ao longo do tempo para os autores mais ativos."""
+    calendario = _calendario(commits)
+    por_autor: dict[str, list[Commit]] = defaultdict(list)
+    nomes: dict[str, str] = {}
+    for commit in commits:
+        por_autor[commit.author_email].append(commit)
+        nomes[commit.author_email] = commit.author_name
+
+    top_emails = [
+        email
+        for email, _ in sorted(
+            por_autor.items(), key=lambda item: len(item[1]), reverse=True
+        )[: config.CUMULATIVE_TOP_AUTHORS]
+    ]
+
+    series: list[AuthorTimelineSeries] = []
+    for email in top_emails:
+        por_dia: Counter[str] = Counter(
+            commit.committed_at.date().isoformat() for commit in por_autor[email]
+        )
+        acumulado = 0
+        pontos: list[CumulativePoint] = []
+        for dia in calendario:
+            acumulado += por_dia.get(dia.date().isoformat(), 0)
+            pontos.append(CumulativePoint(date=dia.date().isoformat(), cumulative_commits=acumulado))
+        series.append(
+            AuthorTimelineSeries(author_email=email, author_name=nomes[email], points=pontos)
+        )
+    return series
 
 
 def _tipos(commits: list[Commit]) -> CommitTypeStats:
@@ -204,6 +262,12 @@ def _tipos(commits: list[Commit]) -> CommitTypeStats:
     )
 
 
+def _calendario(commits: list[Commit]) -> pd.DatetimeIndex:
+    inicio = min(commit.committed_at.date() for commit in commits)
+    fim = max(commit.committed_at.date() for commit in commits)
+    return pd.date_range(inicio, fim, freq="D")
+
+
 def _linha_do_tempo(commits: list[Commit]) -> TimelineData:
     registros = []
     for commit in commits:
@@ -218,9 +282,7 @@ def _linha_do_tempo(commits: list[Commit]) -> TimelineData:
     quadro = pd.DataFrame(registros)
     por_dia = quadro.groupby("date").size()
 
-    inicio = min(commit.committed_at.date() for commit in commits)
-    fim = max(commit.committed_at.date() for commit in commits)
-    calendario = pd.date_range(inicio, fim, freq="D")
+    calendario = _calendario(commits)
     serie = pd.Series(
         [int(por_dia.get(dia.date().isoformat(), 0)) for dia in calendario]
     )
@@ -251,6 +313,32 @@ def _linha_do_tempo(commits: list[Commit]) -> TimelineData:
     return TimelineData(points=pontos, note=NOTA_FUSO)
 
 
+def _rotulos_buckets(limites: list[int]) -> list[str]:
+    rotulos = []
+    anterior = 0
+    for limite in limites:
+        rotulos.append(f"≤{limite}" if anterior == 0 else f"{anterior}–{limite}")
+        anterior = limite + 1
+    rotulos.append(f"{anterior}+")
+    return rotulos
+
+
+def _tamanho_commits(commits: list[Commit]) -> list[CommitSizeBucket]:
+    limites = config.COMMIT_SIZE_BUCKET_EDGES
+    rotulos = _rotulos_buckets(limites)
+    contagem = [0] * len(rotulos)
+    for commit in commits:
+        ins, dele = _linhas(commit)
+        total = ins + dele
+        indice = next(
+            (i for i, limite in enumerate(limites) if total <= limite), len(limites)
+        )
+        contagem[indice] += 1
+    return [
+        CommitSizeBucket(label=rotulo, count=qtd) for rotulo, qtd in zip(rotulos, contagem)
+    ]
+
+
 def _heatmap(commits: list[Commit]) -> HeatmapData:
     matriz = [[0 for _ in range(24)] for _ in range(7)]
     for commit in commits:
@@ -263,6 +351,7 @@ def _hotspots(commits: list[Commit]) -> FileHotspotStats:
     por_arquivo: dict[str, dict[str, int]] = defaultdict(
         lambda: {"commits": 0, "insertions": 0, "deletions": 0}
     )
+    autores_por_arquivo: dict[str, set[str]] = defaultdict(set)
     por_extensao: dict[str, dict[str, int]] = defaultdict(
         lambda: {"commits": 0, "changed": 0}
     )
@@ -276,6 +365,7 @@ def _hotspots(commits: list[Commit]) -> FileHotspotStats:
             stats["commits"] += 1
             stats["insertions"] += arquivo.insertions
             stats["deletions"] += arquivo.deletions
+            autores_por_arquivo[arquivo.path].add(commit.author_email)
             cruzamento[(arquivo.path, commit.author_email, commit.author_name)] += 1
             vistos.add(arquivo.path)
             extensao = Path(arquivo.path).suffix.lower() or "(sem extensão)"
@@ -291,6 +381,7 @@ def _hotspots(commits: list[Commit]) -> FileHotspotStats:
             insertions=dados["insertions"],
             deletions=dados["deletions"],
             total_changed=dados["insertions"] + dados["deletions"],
+            author_count=len(autores_por_arquivo[caminho]),
         )
         for caminho, dados in por_arquivo.items()
     ]
@@ -319,11 +410,17 @@ def _hotspots(commits: list[Commit]) -> FileHotspotStats:
         )
         for (caminho, email, nome), qtd in cruzamento.most_common(100)
     ]
+
+    dono_unico = [arquivo for arquivo in arquivos if arquivo.author_count == 1]
+    dono_unico.sort(key=lambda item: item.commit_count, reverse=True)
+
     return FileHotspotStats(
         top_by_commits=top_commits,
         top_by_lines=top_linhas,
         by_extension=extensoes,
         file_author_cross=cruzado,
+        single_owner_files=dono_unico[: config.TOP_FILES],
+        single_owner_count=len(dono_unico),
     )
 
 
@@ -410,6 +507,25 @@ def _pontos_de_atencao(commits: list[Commit]) -> list[AttentionFlag]:
                     details=email,
                 )
             )
+
+    if len(commits) >= 2:
+        inicio = min(commit.committed_at for commit in commits)
+        fim = max(commit.committed_at for commit in commits)
+        if fim - inicio >= timedelta(hours=config.LAST_WINDOW_HOURS * 2):
+            janela = _janela_final(commits, config.LAST_WINDOW_HOURS)
+            pct = _percentual(len(janela), len(commits))
+            if pct >= config.LAST_WINDOW_RUSH_THRESHOLD_PCT:
+                flags.append(
+                    AttentionFlag(
+                        kind="corrida_final",
+                        message=(
+                            f"{len(janela)} commit(s) ({pct}%) ocorreram nas últimas "
+                            f"{config.LAST_WINDOW_HOURS}h do histórico — possível "
+                            "corrida de última hora."
+                        ),
+                        details=", ".join(c.sha_short for c in janela[:8]),
+                    )
+                )
 
     reverts = [
         commit

@@ -17,6 +17,7 @@ import config
 from models.commit import Commit, FileChange
 from services.conventional_commits import enrich_commit
 from services.errors import CloneTimeoutError, EmptyRepositoryError
+from services.trailers import enrich_coauthors
 
 _MSG_VAZIO = "Este repositório não possui histórico de commits para analisar."
 _MSG_TIMEOUT = (
@@ -108,6 +109,7 @@ def _parse_registro(registro: str) -> Commit:
         files_changed=_file_changes(resto),
     )
     enrich_commit(commit)
+    enrich_coauthors(commit)
     return commit
 
 

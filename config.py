@@ -15,6 +15,10 @@ SHORT_MESSAGE_CHARS = 10
 HUGE_COMMIT_LINES = 500
 REPEATED_MESSAGE_MIN = 3
 PARTICIPATION_BASE_PCT = 10.0
+LAST_WINDOW_HOURS = 24
+LAST_WINDOW_RUSH_THRESHOLD_PCT = 40.0
+COMMIT_SIZE_BUCKET_EDGES = [10, 50, 200, 500]
+CUMULATIVE_TOP_AUTHORS = 8
 
 # gettempdir() em vez de /tmp fixo: os testes e o dev local no Windows
 # precisam do diretório temporário do SO; no Cloud Run continua sendo /tmp.

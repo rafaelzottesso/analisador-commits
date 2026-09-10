@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from models.commit import Commit, FileChange
 from services.analyzer import TIPO_NAO_PADRONIZADO, build_report
 from services.conventional_commits import enrich_commit
+from services.trailers import enrich_coauthors
 
 
 def _dt(dia: int, hora: int = 10) -> datetime:
@@ -17,19 +18,23 @@ def _commit(
     hora: int = 10,
     arquivos: list[FileChange] | None = None,
     is_merge: bool = False,
+    mensagem_completa: str | None = None,
 ) -> Commit:
+    mensagem = mensagem_completa if mensagem_completa is not None else summary
     commit = Commit(
         sha="a" * 40,
         sha_short="aaaaaaa",
         author_name=nome,
         author_email=email,
         committed_at=_dt(dia, hora),
-        message=summary,
+        message=mensagem,
         message_summary=summary,
         is_merge=is_merge,
         files_changed=arquivos or [FileChange("app.py", 10, 2)],
     )
-    return enrich_commit(commit)
+    enrich_commit(commit)
+    enrich_coauthors(commit)
+    return commit
 
 
 class TestBuildReport:
@@ -137,3 +142,83 @@ class TestBuildReport:
         assert pico.is_outlier is True
         assert calmo.is_outlier is False
         assert pico.count == 10
+
+    def test_coautoria_aparece_no_resumo_e_no_autor(self) -> None:
+        commits = [
+            _commit(
+                "feat: dupla",
+                email="ana@example.com",
+                nome="Ana",
+                dia=15,
+                mensagem_completa=(
+                    "feat: dupla\n\nCo-authored-by: Bruno Souza <bruno@example.com>"
+                ),
+            ),
+            _commit("fix: solo", email="bruno@example.com", nome="Bruno Souza", dia=16),
+        ]
+        relatorio = build_report(commits, "https://github.com/o/r")
+        assert relatorio.summary.commits_with_coauthors == 1
+        bruno = next(a for a in relatorio.authors if a.email == "bruno@example.com")
+        assert bruno.coauthored_commit_count == 1
+        ana = next(a for a in relatorio.authors if a.email == "ana@example.com")
+        assert ana.coauthored_commit_count == 0
+
+    def test_arquivo_com_dono_unico(self) -> None:
+        commits = [
+            _commit(
+                "feat: a",
+                email="ana@example.com",
+                dia=15,
+                arquivos=[FileChange("solo.py", 5, 0)],
+            ),
+            _commit(
+                "feat: b",
+                email="ana@example.com",
+                dia=16,
+                arquivos=[FileChange("solo.py", 3, 0), FileChange("compartilhado.py", 2, 0)],
+            ),
+            _commit(
+                "feat: c",
+                email="bruno@example.com",
+                nome="Bruno",
+                dia=17,
+                arquivos=[FileChange("compartilhado.py", 1, 0)],
+            ),
+        ]
+        relatorio = build_report(commits, "https://github.com/o/r")
+        caminhos_dono_unico = {a.path for a in relatorio.file_hotspots.single_owner_files}
+        assert "solo.py" in caminhos_dono_unico
+        assert "compartilhado.py" not in caminhos_dono_unico
+        assert relatorio.file_hotspots.single_owner_count == 1
+
+    def test_distribuicao_de_tamanho_de_commit(self) -> None:
+        commits = [
+            _commit("feat: pequeno", arquivos=[FileChange("a.py", 2, 0)]),
+            _commit("feat: grande", dia=16, arquivos=[FileChange("b.py", 300, 0)]),
+        ]
+        relatorio = build_report(commits, "https://github.com/o/r")
+        contagem = {b.label: b.count for b in relatorio.commit_size_buckets}
+        assert contagem["≤10"] == 1
+        assert contagem["201–500"] == 1
+
+    def test_corrida_de_ultima_hora_gera_alerta(self) -> None:
+        commits = [_commit("feat: antigo", dia=1, hora=8)]
+        for i in range(9):
+            commits.append(_commit(f"feat: rush {i}", dia=10, hora=23))
+        relatorio = build_report(commits, "https://github.com/o/r")
+        kinds = {flag.kind for flag in relatorio.attention_flags}
+        assert "corrida_final" in kinds
+
+    def test_contribuicao_acumulada_cresce_por_dia(self) -> None:
+        commits = [
+            _commit("feat: a", email="ana@example.com", dia=15),
+            _commit("feat: b", email="ana@example.com", dia=16),
+            _commit("feat: c", email="ana@example.com", dia=17),
+        ]
+        relatorio = build_report(commits, "https://github.com/o/r")
+        serie = next(
+            s for s in relatorio.cumulative_contribution if s.author_email == "ana@example.com"
+        )
+        acumulados = [p.cumulative_commits for p in serie.points]
+        assert acumulados == sorted(acumulados)
+        assert acumulados[-1] == 3

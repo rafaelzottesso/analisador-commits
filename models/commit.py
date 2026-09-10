@@ -14,6 +14,12 @@ class FileChange:
 
 
 @dataclass
+class CoAuthor:
+    name: str
+    email: str
+
+
+@dataclass
 class Commit:
     sha: str
     sha_short: str
@@ -24,6 +30,7 @@ class Commit:
     message_summary: str
     is_merge: bool
     files_changed: list[FileChange] = field(default_factory=list)
+    co_authors: list[CoAuthor] = field(default_factory=list)
     cc_type: str | None = None
     cc_scope: str | None = None
     cc_description: str | None = None
@@ -59,6 +66,10 @@ class SummaryStats:
     direct_commits: int
     analysis_limited: bool
     max_commits_limit: int | None
+    commits_with_coauthors: int
+    last_window_commits: int
+    last_window_pct: float
+    last_window_hours: int
 
 
 @dataclass
@@ -81,6 +92,7 @@ class AuthorStats:
     last_commit_at: datetime
     top_commit_types: list[TypeCount]
     low_participation: bool
+    coauthored_commit_count: int
 
 
 @dataclass
@@ -140,6 +152,7 @@ class FileStats:
     insertions: int
     deletions: int
     total_changed: int
+    author_count: int
 
 
 @dataclass
@@ -163,6 +176,27 @@ class FileHotspotStats:
     top_by_lines: list[FileStats]
     by_extension: list[ExtensionStats]
     file_author_cross: list[FileAuthorCross]
+    single_owner_files: list[FileStats]
+    single_owner_count: int
+
+
+@dataclass
+class CommitSizeBucket:
+    label: str
+    count: int
+
+
+@dataclass
+class CumulativePoint:
+    date: str
+    cumulative_commits: int
+
+
+@dataclass
+class AuthorTimelineSeries:
+    author_email: str
+    author_name: str
+    points: list[CumulativePoint]
 
 
 @dataclass
@@ -176,8 +210,10 @@ class AttentionFlag:
 class ReportData:
     summary: SummaryStats
     authors: list[AuthorStats]
+    cumulative_contribution: list[AuthorTimelineSeries]
     commit_types: CommitTypeStats
     timeline: TimelineData
+    commit_size_buckets: list[CommitSizeBucket]
     time_heatmap: HeatmapData
     file_hotspots: FileHotspotStats
     attention_flags: list[AttentionFlag]
