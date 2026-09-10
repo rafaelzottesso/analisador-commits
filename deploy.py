@@ -45,6 +45,10 @@ DEFAULT_RESOURCES = {
 }
 
 
+# Caminho do executável do gcloud (no Windows é gcloud.cmd)
+GCLOUD_BIN = shutil.which("gcloud") or "gcloud"
+
+
 def carregar_env_local() -> dict[str, str]:
     """Lê pares CHAVE=VALOR de um arquivo .env local, se existir."""
     env_vars: dict[str, str] = {}
@@ -75,7 +79,7 @@ def obter_gcloud_config(chave: str) -> str | None:
         return None
     try:
         resultado = subprocess.run(
-            ["gcloud", "config", "get-value", chave],
+            [GCLOUD_BIN, "config", "get-value", chave],
             capture_output=True,
             text=True,
             check=False,
@@ -148,11 +152,11 @@ def deploy_cloudrun(
     )
     print()
 
-    # Comandos gcloud
-    cmd_account = ["gcloud", "config", "set", "account", account] if account else None
-    cmd_project = ["gcloud", "config", "set", "project", project]
+    # Comandos gcloud (usa GCLOUD_BIN resolvido para suportar gcloud.cmd no Windows)
+    cmd_account = [GCLOUD_BIN, "config", "set", "account", account] if account else None
+    cmd_project = [GCLOUD_BIN, "config", "set", "project", project]
     cmd_deploy = [
-        "gcloud",
+        GCLOUD_BIN,
         "run",
         "deploy",
         DEFAULT_SERVICE_NAME,
@@ -182,13 +186,15 @@ def deploy_cloudrun(
         passo = 1
         if cmd_account:
             print(f"{passo}. Definir conta:")
-            print("   " + " ".join(cmd_account))
+            print(f"   gcloud config set account {account}")
             passo += 1
         print(f"\n{passo}. Definir projeto:")
-        print("   " + " ".join(cmd_project))
+        print(f"   gcloud config set project {project}")
         passo += 1
         print(f"\n{passo}. Publicar no Cloud Run:")
-        print("   " + " ".join(cmd_deploy))
+        # Exibe com 'gcloud' para legibilidade na tela
+        cmd_exibicao = ["gcloud"] + cmd_deploy[1:]
+        print("   " + " ".join(cmd_exibicao))
         print("\n\033[92m✔ Dry-run concluído com sucesso. Script pronto para execução!\033[0m")
         return
 
@@ -198,7 +204,8 @@ def deploy_cloudrun(
             print(f"🔄 Definindo conta gcloud para {account}...")
             subprocess.run(cmd_account, check=True)
         except subprocess.CalledProcessError:
-            print(f"\n\033[91m❌ Falha ao definir conta '{account}'. Verifique a autenticação.\033[0m")
+            print(f"\n\033[91m❌ Falha ao definir conta '{account}'.")
+            print("   Se a sessão tiver expirado, execute: gcloud auth login\033[0m")
             sys.exit(1)
 
     # 2. Definir projeto
@@ -206,13 +213,15 @@ def deploy_cloudrun(
         print(f"🔄 Definindo projeto gcloud para {project}...")
         subprocess.run(cmd_project, check=True)
     except subprocess.CalledProcessError:
-        print(f"\n\033[91m❌ Falha ao definir projeto '{project}'. Verifique permissões.\033[0m")
+        print(f"\n\033[91m❌ Falha ao definir projeto '{project}'.")
+        print("   Se a sessão tiver expirado, execute: gcloud auth login\033[0m")
         sys.exit(1)
 
     # 3. Executar o deploy
     try:
         print("\n🚀 Iniciando build e deploy no Google Cloud Run...")
-        print("   " + " ".join(cmd_deploy) + "\n")
+        cmd_exibicao = ["gcloud"] + cmd_deploy[1:]
+        print("   " + " ".join(cmd_exibicao) + "\n")
         subprocess.run(cmd_deploy, check=True)
         print("\n\033[92m🎉 Deploy finalizado com sucesso no Google Cloud Run!\033[0m")
         print("\n💡 Dica para mapear seu domínio próprio nesta região:")
