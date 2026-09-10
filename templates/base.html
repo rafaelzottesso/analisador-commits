@@ -47,6 +47,17 @@
     </div>
   </footer>
 
+  <button
+    id="btn-voltar-topo"
+    type="button"
+    class="btn-voltar-topo"
+    aria-label="Voltar ao topo da página"
+    title="Voltar ao topo"
+  >
+    <i class="bi bi-chevron-up" aria-hidden="true"></i>
+  </button>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>
