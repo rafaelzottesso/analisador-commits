@@ -23,11 +23,14 @@ _MSG_TIMEOUT = (
 def clone_repository(url: str) -> Path:
     config.TEMP_BASE_DIR.mkdir(parents=True, exist_ok=True)
     tmp_dir = Path(tempfile.mkdtemp(prefix="repo-", dir=config.TEMP_BASE_DIR))
+    # Sem --filter=blob:none: o extractor precisa do diff completo de cada
+    # commit, então um clone parcial só adiaria o custo para buscas de blob
+    # sob demanda (uma por objeto faltante) durante a extração — mais lento
+    # no total do que baixar tudo de uma vez aqui.
     comando = [
         "git",
         "clone",
         "--bare",
-        "--filter=blob:none",
         "--single-branch",
         url,
         str(tmp_dir),
