@@ -4,24 +4,58 @@
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 {% endblock %}
 {% block content %}
-<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-  <div>
-    <p class="hero-eyebrow mb-1">Relatório de commits</p>
-    <h1 class="h3 mb-1 d-flex align-items-center gap-2">
-      <i class="bi bi-github" aria-hidden="true"></i>
-      <a class="link-body-emphasis" href="{{ report.repo_url }}" rel="noopener noreferrer" target="_blank">{{ report.repo_url }}</a>
-    </h1>
-    <p class="text-secondary mb-0">
-      Análise gerada em {{ report.generated_at_sp.strftime("%d/%m/%Y às %H:%M (UTC-3)") }}
-    </p>
+<!-- Hero do Relatório com Ações Rápidas -->
+<div class="card report-hero-card p-4 mb-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div class="flex-grow-1">
+      <div class="mb-2">
+        <span class="hero-eyebrow-badge">
+          <i class="bi bi-graph-up-arrow" aria-hidden="true"></i> Relatório de commits
+        </span>
+      </div>
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <h1 class="h3 mb-0 d-inline-flex align-items-center">
+          <span class="repo-badge-pill">
+            <i class="bi bi-github" aria-hidden="true"></i>
+            <a class="link-body-emphasis text-decoration-none" href="{{ report.repo_url }}" rel="noopener noreferrer" target="_blank">{{ report.repo_url }}</a>
+          </span>
+        </h1>
+        <div class="d-inline-flex gap-2">
+          <button id="btn-copiar-url" type="button" class="btn btn-outline-secondary btn-copy-url d-inline-flex align-items-center gap-1 shadow-sm" data-url="{{ report.repo_url }}" title="Copiar URL do repositório">
+            <i class="bi bi-copy" aria-hidden="true"></i> <span>Copiar URL</span>
+          </button>
+          <a class="btn btn-outline-secondary btn-copy-url d-inline-flex align-items-center justify-content-center shadow-sm" href="{{ report.repo_url }}" target="_blank" rel="noopener noreferrer" title="Abrir repositório no GitHub">
+            <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+          </a>
+        </div>
+      </div>
+      <div class="text-secondary small d-flex flex-wrap align-items-center gap-2">
+        <span><i class="bi bi-clock-history me-1" aria-hidden="true"></i> Análise gerada em {{ report.generated_at_sp.strftime("%d/%m/%Y às %H:%M (UTC-3)") }}</span>
+        <span>&bull;</span>
+        <span><i class="bi bi-calendar3 me-1" aria-hidden="true"></i> {{ report.summary.period_start.strftime("%d/%m/%Y") }} a {{ report.summary.period_end.strftime("%d/%m/%Y") }}</span>
+      </div>
+    </div>
+    <a class="btn btn-outline-primary shadow-sm" href="{{ url_for('analyzer.index') }}">
+      <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Analisar outro repositório
+    </a>
   </div>
-  <a class="btn btn-outline-primary" href="{{ url_for('analyzer.index') }}">
-    <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Analisar outro repositório
-  </a>
 </div>
 
+<!-- Barra de Navegação Rápida com Efeito Dock Sticky -->
+<nav class="quick-nav-dock mb-4" id="quick-nav-bar" aria-label="Navegação rápida do relatório">
+  <a href="#resumo" class="quick-nav-link active"><i class="bi bi-speedometer2" aria-hidden="true"></i> Resumo</a>
+  <a href="#autores" class="quick-nav-link"><i class="bi bi-people-fill" aria-hidden="true"></i> Autores</a>
+  <a href="#atividade-recente" class="quick-nav-link"><i class="bi bi-lightning-charge-fill" aria-hidden="true"></i> Atividade</a>
+  <a href="#tipos" class="quick-nav-link"><i class="bi bi-pie-chart-fill" aria-hidden="true"></i> Tipos</a>
+  <a href="#timeline" class="quick-nav-link"><i class="bi bi-graph-up" aria-hidden="true"></i> Timeline</a>
+  <a href="#tamanho" class="quick-nav-link"><i class="bi bi-bar-chart-steps" aria-hidden="true"></i> Tamanho</a>
+  <a href="#heatmap" class="quick-nav-link"><i class="bi bi-grid-3x3-gap-fill" aria-hidden="true"></i> Horários</a>
+  <a href="#hotspots" class="quick-nav-link"><i class="bi bi-fire" aria-hidden="true"></i> Hotspots</a>
+  <a href="#atencao" class="quick-nav-link"><i class="bi bi-shield-exclamation" aria-hidden="true"></i> Atenção</a>
+</nav>
+
 {% if filtered_until %}
-<div class="alert alert-primary d-flex align-items-center gap-2 mb-3">
+<div class="alert alert-primary d-flex align-items-center gap-2 mb-4 border-0 shadow-sm">
   <i class="bi bi-calendar-check-fill fs-5" aria-hidden="true"></i>
   <div>
     <strong>Análise congelada até {{ filtered_until.strftime("%d/%m/%Y") }}:</strong>
@@ -31,97 +65,168 @@
 {% endif %}
 
 {% if report.summary.analysis_limited %}
-<div class="alert alert-info d-flex align-items-center gap-2">
-  <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
+<div class="alert alert-info d-flex align-items-center gap-2 mb-4 border-0 shadow-sm">
+  <i class="bi bi-info-circle-fill fs-5" aria-hidden="true"></i>
   <div>A análise foi limitada aos {{ report.summary.max_commits_limit }} commits mais recentes.</div>
 </div>
 {% endif %}
 
+<!-- 1. RESUMO EXECUTIVO (CARDS KPI INTERATIVOS COM ROTAÇÃO NO HOVER) -->
 <section class="mb-5" id="resumo">
-  <h2 class="h5 text-uppercase text-secondary mb-3">Resumo executivo</h2>
-  <div class="row row-cols-2 row-cols-lg-3 g-3">
+  <div class="section-header-modern mb-3">
+    <div class="d-flex align-items-center gap-2">
+      <span class="section-icon-badge"><i class="bi bi-speedometer2" aria-hidden="true"></i></span>
+      <h2 class="h5 text-uppercase font-heading fw-bold mb-0">Resumo executivo</h2>
+    </div>
+    <span class="badge rounded-pill text-bg-light border text-secondary fw-normal">
+      <i class="bi bi-git me-1" aria-hidden="true"></i> {{ report.summary.total_commits }} commits totais
+    </span>
+  </div>
+
+  <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
     <div class="col">
-      <div class="card stat-card h-100 border-0">
+      <div class="card stat-card h-100">
         <div class="card-body d-flex align-items-start gap-3">
-          <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-git" aria-hidden="true"></i></div>
-          <div>
-            <div class="text-secondary small">Commits</div>
+          <div class="stat-icon bg-primary-subtle text-primary">
+            <i class="bi bi-git" aria-hidden="true"></i>
+          </div>
+          <div class="flex-grow-1">
+            <div class="text-secondary small fw-medium">Commits</div>
             <div class="fs-3 font-heading fw-bold">{{ report.summary.total_commits }}</div>
+            <div class="mt-1">
+              <span class="stat-chip bg-primary-subtle text-primary">
+                {{ report.summary.direct_commits }} diretos &middot; {{ report.summary.merge_commits }} merges
+              </span>
+            </div>
           </div>
         </div>
       </div>
     </div>
     <div class="col">
-      <div class="card stat-card h-100 border-0">
+      <div class="card stat-card h-100">
         <div class="card-body d-flex align-items-start gap-3">
-          <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-people-fill" aria-hidden="true"></i></div>
-          <div>
-            <div class="text-secondary small">Autores</div>
+          <div class="stat-icon bg-info-subtle text-info">
+            <i class="bi bi-people-fill" aria-hidden="true"></i>
+          </div>
+          <div class="flex-grow-1">
+            <div class="text-secondary small fw-medium">Autores</div>
             <div class="fs-3 font-heading fw-bold">{{ report.summary.total_authors }}</div>
+            <div class="mt-1">
+              <span class="stat-chip bg-info-subtle text-info">
+                Contribuidores no período
+              </span>
+            </div>
           </div>
         </div>
       </div>
     </div>
     <div class="col">
-      <div class="card stat-card h-100 border-0">
+      <div class="card stat-card h-100">
         <div class="card-body d-flex align-items-start gap-3">
-          <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-check2-circle" aria-hidden="true"></i></div>
-          <div>
-            <div class="text-secondary small">Aderência Conventional</div>
+          <div class="stat-icon bg-success-subtle text-success">
+            <i class="bi bi-patch-check-fill" aria-hidden="true"></i>
+          </div>
+          <div class="flex-grow-1">
+            <div class="text-secondary small fw-medium">Aderência Conventional</div>
             <div class="fs-3 font-heading fw-bold">{{ report.summary.conventional_adherence_pct }}%</div>
+            <div class="mt-1">
+              <span class="stat-chip bg-success-subtle text-success">
+                {% if report.summary.conventional_adherence_pct >= 80 %}Excelente padronização
+                {% elif report.summary.conventional_adherence_pct >= 50 %}Padronização moderada
+                {% else %}Baixa padronização{% endif %}
+              </span>
+            </div>
           </div>
         </div>
       </div>
     </div>
     <div class="col">
-      <div class="card stat-card h-100 border-0">
+      <div class="card stat-card h-100">
         <div class="card-body d-flex align-items-start gap-3">
-          <div class="stat-icon bg-warning-subtle text-warning-emphasis"><i class="bi bi-file-diff-fill" aria-hidden="true"></i></div>
-          <div>
-            <div class="text-secondary small">Linhas + / −</div>
-            <div class="fs-3 font-heading fw-bold">{{ report.summary.total_insertions }} / {{ report.summary.total_deletions }}</div>
+          <div class="stat-icon bg-warning-subtle text-warning-emphasis">
+            <i class="bi bi-file-earmark-diff-fill" aria-hidden="true"></i>
+          </div>
+          <div class="flex-grow-1">
+            <div class="text-secondary small fw-medium">Linhas + / −</div>
+            <div class="fs-3 font-heading fw-bold">
+              <span class="text-success">+{{ report.summary.total_insertions }}</span> / <span class="text-danger">−{{ report.summary.total_deletions }}</span>
+            </div>
+            <div class="mt-1">
+              <span class="stat-chip bg-warning-subtle text-warning-emphasis">
+                Volume de código modificado
+              </span>
+            </div>
           </div>
         </div>
       </div>
     </div>
     <div class="col">
-      <div class="card stat-card h-100 border-0">
+      <div class="card stat-card h-100">
         <div class="card-body d-flex align-items-start gap-3">
-          <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-people-fill" aria-hidden="true"></i></div>
-          <div>
-            <div class="text-secondary small">Commits com co-autoria</div>
+          <div class="stat-icon bg-primary-subtle text-primary">
+            <i class="bi bi-person-plus-fill" aria-hidden="true"></i>
+          </div>
+          <div class="flex-grow-1">
+            <div class="text-secondary small fw-medium">Commits com co-autoria</div>
             <div class="fs-3 font-heading fw-bold">{{ report.summary.commits_with_coauthors }}</div>
+            <div class="mt-1">
+              <span class="stat-chip bg-primary-subtle text-primary">
+                Trabalho colaborativo / par
+              </span>
+            </div>
           </div>
         </div>
       </div>
     </div>
     <div class="col">
-      <div class="card stat-card h-100 border-0">
+      <div class="card stat-card h-100">
         <div class="card-body d-flex align-items-start gap-3">
-          <div class="stat-icon {% if report.summary.last_window_pct >= 40 %}bg-danger-subtle text-danger{% else %}bg-primary-subtle text-primary{% endif %}"><i class="bi bi-hourglass-split" aria-hidden="true"></i></div>
-          <div>
-            <div class="text-secondary small">Últimas {{ report.summary.last_window_hours }}h do histórico</div>
+          <div class="stat-icon {% if report.summary.last_window_pct >= 40 %}bg-danger-subtle text-danger{% else %}bg-primary-subtle text-primary{% endif %}">
+            <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+          </div>
+          <div class="flex-grow-1">
+            <div class="text-secondary small fw-medium">Últimas {{ report.summary.last_window_hours }}h do histórico</div>
             <div class="fs-3 font-heading fw-bold">{{ report.summary.last_window_pct }}%</div>
+            <div class="mt-1">
+              <span class="stat-chip {% if report.summary.last_window_pct >= 40 %}bg-danger-subtle text-danger{% else %}bg-primary-subtle text-primary{% endif %}">
+                {% if report.summary.last_window_pct >= 40 %}Concentração na reta final{% else %}Ritmo distribuído{% endif %}
+              </span>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-  <p class="text-secondary mt-3 mb-0 small">
-    Período: {{ report.summary.period_start.strftime("%d/%m/%Y") }}
-    a {{ report.summary.period_end.strftime("%d/%m/%Y") }}.
-    {{ report.summary.merge_commits }} merge(s) e
-    {{ report.summary.direct_commits }} commit(s) direto(s).
-    Autores agrupados por e-mail; a mesma pessoa pode aparecer mais de uma vez se usou e-mails diferentes.
-  </p>
+
+  <div class="card border-0 bg-body-tertiary mt-3 p-3 rounded-3 small text-secondary">
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <i class="bi bi-info-circle text-primary fs-6" aria-hidden="true"></i>
+      <span>
+        Período: <strong>{{ report.summary.period_start.strftime("%d/%m/%Y") }}</strong>
+        a <strong>{{ report.summary.period_end.strftime("%d/%m/%Y") }}</strong>.
+        Total de <strong>{{ report.summary.merge_commits }} merge(s)</strong> e
+        <strong>{{ report.summary.direct_commits }} commit(s) direto(s)</strong>.
+        Autores agrupados por e-mail; a mesma pessoa pode aparecer mais de uma vez se usou e-mails diferentes.
+      </span>
+    </div>
+  </div>
 </section>
 
+<!-- 2. PARTICIPAÇÃO POR AUTOR -->
 <section class="mb-5" id="autores">
-  <h2 class="h5 text-uppercase text-secondary mb-3">Participação por autor</h2>
+  <div class="section-header-modern mb-3">
+    <div class="d-flex align-items-center gap-2">
+      <span class="section-icon-badge"><i class="bi bi-people-fill" aria-hidden="true"></i></span>
+      <h2 class="h5 text-uppercase font-heading fw-bold mb-0">Participação por autor</h2>
+    </div>
+  </div>
+
   <div class="row g-3 mb-3">
     <div class="col-lg-6">
       <div class="card chart-card border-0 h-100">
-        <div class="card-header">Commits por autor</div>
+        <div class="card-header">
+          <span><i class="bi bi-bar-chart-fill me-2 text-primary" aria-hidden="true"></i>Commits por autor</span>
+        </div>
         <div class="card-body">
           <div id="grafico-autores" class="grafico"></div>
         </div>
@@ -129,22 +234,45 @@
     </div>
     <div class="col-lg-6">
       <div class="card chart-card border-0 h-100">
-        <div class="card-header">Contribuição acumulada (top {{ report.cumulative_contribution|length }} autores)</div>
+        <div class="card-header">
+          <span><i class="bi bi-graph-up me-2 text-primary" aria-hidden="true"></i>Contribuição acumulada (top {{ report.cumulative_contribution|length }} autores)</span>
+        </div>
         <div class="card-body">
           <div id="grafico-acumulado" class="grafico"></div>
         </div>
       </div>
     </div>
   </div>
+
   <div class="card border-0">
+    <div class="card-body p-3 pb-0">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+        <div class="small text-secondary fw-medium">
+          <i class="bi bi-people me-1" aria-hidden="true"></i>
+          Exibindo <span id="contador-autores-visiveis" class="fw-bold text-body">{{ report.authors|length }}</span> autor(es)
+        </div>
+        <div class="input-group input-group-sm table-search-input" style="max-width: 300px;">
+          <span class="input-group-text bg-body-tertiary border-end-0 text-secondary">
+            <i class="bi bi-search" aria-hidden="true"></i>
+          </span>
+          <input
+            type="search"
+            id="busca-autor"
+            class="form-control border-start-0"
+            placeholder="Buscar por nome ou e-mail..."
+            aria-label="Filtrar tabela de autores"
+          >
+        </div>
+      </div>
+    </div>
     <div class="table-responsive tabela-autores-scroll">
-      <table class="table table-sm table-hover align-middle mb-0">
+      <table class="table table-sm table-hover table-modern align-middle mb-0">
         <thead>
           <tr>
             <th>Autor</th>
             <th>E-mail</th>
             <th>Commits</th>
-            <th>%</th>
+            <th style="min-width: 130px;">% Participação</th>
             <th>Linhas +/−</th>
             <th>Primeiro</th>
             <th>Último</th>
@@ -152,27 +280,60 @@
             <th>Tipos mais usados</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="tabela-autores-corpo">
           {% for autor in report.authors %}
           <tr class="{% if autor.low_participation %}table-warning{% endif %}">
-            <td>{{ autor.name }}</td>
-            <td>{{ autor.email }}</td>
-            <td>{{ autor.commit_count }}</td>
-            <td>{{ autor.commit_pct }}%</td>
-            <td>{{ autor.insertions }} / {{ autor.deletions }}</td>
-            <td>{{ autor.first_commit_at.strftime("%d/%m/%Y") }}</td>
-            <td>{{ autor.last_commit_at.strftime("%d/%m/%Y") }}</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <span class="avatar-circle" aria-hidden="true">{{ autor.name[:1] | upper }}</span>
+                <span class="fw-semibold">{{ autor.name }}</span>
+                {% if autor.low_participation %}
+                  <span class="badge text-bg-warning text-dark rounded-pill small" title="Participação abaixo do limiar sugerido">
+                    <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true"></i>Atenção
+                  </span>
+                {% endif %}
+              </div>
+            </td>
+            <td><code class="text-secondary small">{{ autor.email }}</code></td>
+            <td><span class="fw-bold">{{ autor.commit_count }}</span></td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress progress-mini flex-grow-1" style="height: 6px;">
+                  <div
+                    class="progress-bar"
+                    role="progressbar"
+                    style="width: {{ autor.commit_pct }}%"
+                    aria-valuenow="{{ autor.commit_pct }}"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                  ></div>
+                </div>
+                <span class="small fw-semibold">{{ autor.commit_pct }}%</span>
+              </div>
+            </td>
+            <td>
+              <span class="text-success fw-semibold">+{{ autor.insertions }}</span> /
+              <span class="text-danger fw-semibold">−{{ autor.deletions }}</span>
+            </td>
+            <td class="small">{{ autor.first_commit_at.strftime("%d/%m/%Y") }}</td>
+            <td class="small">{{ autor.last_commit_at.strftime("%d/%m/%Y") }}</td>
             <td>
               {% if autor.coauthored_commit_count %}
-                <span class="badge rounded-pill text-bg-info fw-normal">{{ autor.coauthored_commit_count }} commit(s)</span>
+                <span class="badge rounded-pill text-bg-info fw-normal">
+                  <i class="bi bi-people me-1" aria-hidden="true"></i>{{ autor.coauthored_commit_count }} commit(s)
+                </span>
               {% else %}
                 <span class="text-secondary">—</span>
               {% endif %}
             </td>
             <td>
-              {% for tipo in autor.top_commit_types[:3] %}
-                <span class="badge rounded-pill text-bg-secondary fw-normal">{{ tipo.commit_type }} ({{ tipo.count }})</span>
-              {% endfor %}
+              <div class="d-flex flex-wrap gap-1">
+                {% for tipo in autor.top_commit_types[:3] %}
+                  <span class="badge rounded-pill badge-commit-type">
+                    {{ tipo.commit_type }} <span class="badge-count">({{ tipo.count }})</span>
+                  </span>
+                {% endfor %}
+              </div>
             </td>
           </tr>
           {% endfor %}
@@ -181,37 +342,49 @@
     </div>
   </div>
   <p class="small text-secondary mt-2">
+    <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
     Linhas destacadas indicam participação abaixo do limiar configurado, para o professor investigar — não é um julgamento automático.
     "Co-autor em" conta commits de <em>outras</em> pessoas em que esse e-mail aparece como
     <code>Co-authored-by</code> — contribuição que não aparece como autoria principal.
   </p>
 </section>
 
+<!-- 3. ATIVIDADE RECENTE -->
 <section class="mb-5" id="atividade-recente">
-  <h2 class="h5 text-uppercase text-secondary mb-3">Atividade recente</h2>
+  <div class="section-header-modern mb-3">
+    <div class="d-flex align-items-center gap-2">
+      <span class="section-icon-badge"><i class="bi bi-lightning-charge-fill" aria-hidden="true"></i></span>
+      <h2 class="h5 text-uppercase font-heading fw-bold mb-0">Atividade recente</h2>
+    </div>
+  </div>
   <p class="text-secondary small mb-3">
     Commits por autor nos últimos {{ report.recent_activity.short_window_days }} e
     {{ report.recent_activity.long_window_days }} dias corridos <strong>a partir de agora</strong>
     (não do último commit do repositório) — útil para ver quem está trabalhando perto da entrega
     e quem deixou tudo para os últimos dias.
   </p>
-  <div class="card chart-card border-0 mb-3">
+
+  <div class="card chart-card border-0 mb-4">
     <div class="card-header">
-      Commits nos últimos {{ report.recent_activity.long_window_days }} dias, por autor
+      <span><i class="bi bi-clock-history me-2 text-primary" aria-hidden="true"></i>Commits nos últimos {{ report.recent_activity.long_window_days }} dias, por autor</span>
     </div>
     <div class="card-body">
       <div id="grafico-atividade-recente" class="grafico"></div>
     </div>
   </div>
+
   <div class="row row-cols-1 row-cols-md-2 g-3">
     {% for autor in report.recent_activity.authors %}
     <div class="col">
-      <div class="card h-100 border-0">
+      <div class="card author-activity-card h-100">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-            <div>
-              <div class="fw-semibold">{{ autor.author_name }}</div>
-              <div class="text-secondary small">{{ autor.author_email }}</div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="avatar-circle" aria-hidden="true">{{ autor.author_name[:1] | upper }}</span>
+              <div>
+                <div class="fw-semibold">{{ autor.author_name }}</div>
+                <div class="text-secondary small">{{ autor.author_email }}</div>
+              </div>
             </div>
             <div class="d-flex gap-1 flex-shrink-0">
               <span class="badge rounded-pill text-bg-primary fw-normal" title="Commits nos últimos {{ report.recent_activity.short_window_days }} dias">
@@ -224,24 +397,27 @@
           </div>
 
           {% if autor.commits_long_window == 0 %}
-          <p class="text-secondary small mb-0">
+          <div class="p-2 rounded-2 bg-body-tertiary text-secondary small">
+            <i class="bi bi-calendar-x me-1 text-warning-emphasis" aria-hidden="true"></i>
             Sem commits nos últimos {{ report.recent_activity.long_window_days }} dias.
-            Último commit há {{ autor.days_since_last_commit }} dia(s), em
+            Último commit há <strong>{{ autor.days_since_last_commit }} dia(s)</strong>, em
             {{ autor.last_commit_at.strftime("%d/%m/%Y") }}.
-          </p>
+          </div>
           {% else %}
           <p class="text-secondary small mb-2">
-            Ativo em {{ autor.active_days_long_window }} dia(s) distintos nos últimos
-            {{ report.recent_activity.long_window_days }}. Linhas +/−:
-            {{ autor.insertions_long_window }} / {{ autor.deletions_long_window }}.
+            <i class="bi bi-activity me-1 text-success" aria-hidden="true"></i>
+            Ativo em <strong>{{ autor.active_days_long_window }} dia(s)</strong> nos últimos
+            {{ report.recent_activity.long_window_days }}d. Linhas +/−:
+            <span class="text-success fw-semibold">+{{ autor.insertions_long_window }}</span> /
+            <span class="text-danger fw-semibold">−{{ autor.deletions_long_window }}</span>.
             Último commit há {{ autor.days_since_last_commit }} dia(s).
           </p>
           <ul class="list-unstyled small mb-0">
             {% for msg in autor.recent_messages %}
-            <li class="mb-1 text-truncate">
-              <code class="text-secondary">{{ msg.sha_short }}</code>
-              <span class="text-secondary">{{ msg.date }}</span>
-              — {{ msg.summary }}
+            <li class="mb-1 text-truncate d-flex align-items-center gap-2">
+              <span class="commit-chip">{{ msg.sha_short }}</span>
+              <span class="text-secondary small">{{ msg.date }}</span>
+              <span class="text-body text-truncate">— {{ msg.summary }}</span>
             </li>
             {% endfor %}
           </ul>
@@ -259,82 +435,133 @@
   {% endif %}
 </section>
 
+<!-- 4. CLASSIFICAÇÃO POR TIPO DE COMMIT -->
 <section class="mb-5" id="tipos">
-  <h2 class="h5 text-uppercase text-secondary mb-3">Classificação por tipo de commit</h2>
+  <div class="section-header-modern mb-3">
+    <div class="d-flex align-items-center gap-2">
+      <span class="section-icon-badge"><i class="bi bi-pie-chart-fill" aria-hidden="true"></i></span>
+      <h2 class="h5 text-uppercase font-heading fw-bold mb-0">Classificação por tipo de commit</h2>
+    </div>
+  </div>
   <div class="row g-3">
     <div class="col-lg-6">
       <div class="card chart-card border-0 h-100">
-        <div class="card-header">Tipos de commit</div>
+        <div class="card-header">
+          <span><i class="bi bi-pie-chart me-2 text-primary" aria-hidden="true"></i>Tipos de commit</span>
+        </div>
         <div class="card-body"><div id="grafico-tipos" class="grafico"></div></div>
       </div>
     </div>
     <div class="col-lg-6">
       <div class="card chart-card border-0 h-100">
-        <div class="card-header">Tipo por autor</div>
+        <div class="card-header">
+          <span><i class="bi bi-bar-chart-steps me-2 text-primary" aria-hidden="true"></i>Tipo por autor</span>
+        </div>
         <div class="card-body"><div id="grafico-tipos-autor" class="grafico"></div></div>
       </div>
     </div>
   </div>
-  <p class="text-secondary mt-3">
-    {{ report.commit_types.with_scope_count }} commit(s) especificam escopo.
-    {% if report.commit_types.top_scopes %}
-      Escopos mais frequentes:
-      {% for escopo in report.commit_types.top_scopes[:5] %}
-        <span class="badge rounded-pill text-bg-light border">{{ escopo.scope }} ({{ escopo.count }})</span>
-      {% endfor %}
-    {% endif %}
-  </p>
+  <div class="card border-0 bg-body-tertiary p-3 rounded-3 mt-3">
+    <div class="d-flex flex-wrap align-items-center gap-2 small">
+      <i class="bi bi-tags text-primary" aria-hidden="true"></i>
+      <span><strong>{{ report.commit_types.with_scope_count }}</strong> commit(s) especificam escopo.</span>
+      {% if report.commit_types.top_scopes %}
+        <span class="text-secondary ms-2">Escopos mais frequentes:</span>
+        {% for escopo in report.commit_types.top_scopes[:5] %}
+          <span class="badge rounded-pill bg-body text-body border">
+            <i class="bi bi-tag-fill me-1 text-secondary" aria-hidden="true"></i>{{ escopo.scope }} ({{ escopo.count }})
+          </span>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
 </section>
 
+<!-- 5. LINHA DO TEMPO -->
 <section class="mb-5" id="timeline">
-  <h2 class="h5 text-uppercase text-secondary mb-3">Linha do tempo</h2>
+  <div class="section-header-modern mb-3">
+    <div class="d-flex align-items-center gap-2">
+      <span class="section-icon-badge"><i class="bi bi-graph-up" aria-hidden="true"></i></span>
+      <h2 class="h5 text-uppercase font-heading fw-bold mb-0">Linha do tempo</h2>
+    </div>
+  </div>
   <div class="card chart-card border-0">
-    <div class="card-header">Commits por dia</div>
+    <div class="card-header">
+      <span><i class="bi bi-calendar-event me-2 text-primary" aria-hidden="true"></i>Commits por dia</span>
+    </div>
     <div class="card-body"><div id="grafico-timeline" class="grafico"></div></div>
   </div>
-  <p class="small text-secondary mt-2">{{ report.timeline.note }}</p>
+  <p class="small text-secondary mt-2"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>{{ report.timeline.note }}</p>
 </section>
 
+<!-- 6. TAMANHO DOS COMMITS -->
 <section class="mb-5" id="tamanho">
-  <h2 class="h5 text-uppercase text-secondary mb-3">Tamanho dos commits</h2>
+  <div class="section-header-modern mb-3">
+    <div class="d-flex align-items-center gap-2">
+      <span class="section-icon-badge"><i class="bi bi-bar-chart-steps" aria-hidden="true"></i></span>
+      <h2 class="h5 text-uppercase font-heading fw-bold mb-0">Tamanho dos commits</h2>
+    </div>
+  </div>
   <div class="card chart-card border-0">
-    <div class="card-header">Linhas alteradas por commit</div>
+    <div class="card-header">
+      <span><i class="bi bi-layers me-2 text-primary" aria-hidden="true"></i>Linhas alteradas por commit</span>
+    </div>
     <div class="card-body"><div id="grafico-tamanho" class="grafico"></div></div>
   </div>
   <p class="small text-secondary mt-2">
+    <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
     Distribuição de commits por faixa de linhas alteradas (inserções + remoções).
     Muitos commits nas faixas mais altas podem indicar trabalho acumulado antes de commitar.
   </p>
 </section>
 
+<!-- 7. PADRÃO HORÁRIO E SEMANAL -->
 <section class="mb-5" id="heatmap">
-  <h2 class="h5 text-uppercase text-secondary mb-3">Padrão horário e semanal</h2>
+  <div class="section-header-modern mb-3">
+    <div class="d-flex align-items-center gap-2">
+      <span class="section-icon-badge"><i class="bi bi-grid-3x3-gap-fill" aria-hidden="true"></i></span>
+      <h2 class="h5 text-uppercase font-heading fw-bold mb-0">Padrão horário e semanal</h2>
+    </div>
+  </div>
   <div class="card chart-card border-0">
-    <div class="card-header">Heatmap dia &times; hora</div>
+    <div class="card-header">
+      <span><i class="bi bi-clock me-2 text-primary" aria-hidden="true"></i>Heatmap dia &times; hora</span>
+    </div>
     <div class="card-body"><div id="grafico-heatmap" class="grafico"></div></div>
   </div>
-  <p class="small text-secondary mt-2">{{ report.time_heatmap.note }}</p>
+  <p class="small text-secondary mt-2"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>{{ report.time_heatmap.note }}</p>
 </section>
 
+<!-- 8. ARQUIVOS E HOTSPOTS -->
 <section class="mb-5" id="hotspots">
-  <h2 class="h5 text-uppercase text-secondary mb-3">Arquivos e hotspots</h2>
+  <div class="section-header-modern mb-3">
+    <div class="d-flex align-items-center gap-2">
+      <span class="section-icon-badge"><i class="bi bi-fire" aria-hidden="true"></i></span>
+      <h2 class="h5 text-uppercase font-heading fw-bold mb-0">Arquivos e hotspots</h2>
+    </div>
+  </div>
   <div class="row g-3 mb-3">
     <div class="col-lg-6">
       <div class="card chart-card border-0 h-100">
-        <div class="card-header">Arquivos mais tocados</div>
+        <div class="card-header">
+          <span><i class="bi bi-file-earmark-code me-2 text-primary" aria-hidden="true"></i>Arquivos mais tocados</span>
+        </div>
         <div class="card-body"><div id="grafico-arquivos" class="grafico"></div></div>
       </div>
     </div>
     <div class="col-lg-6">
       <div class="card chart-card border-0 h-100">
-        <div class="card-header">Esforço por extensão</div>
+        <div class="card-header">
+          <span><i class="bi bi-pie-chart-fill me-2 text-primary" aria-hidden="true"></i>Esforço por extensão</span>
+        </div>
         <div class="card-body"><div id="grafico-extensoes" class="grafico"></div></div>
       </div>
     </div>
   </div>
-  <div class="card border-0">
+
+  <div class="card border-0 mb-4">
     <div class="table-responsive">
-      <table class="table table-sm table-hover mb-0">
+      <table class="table table-sm table-hover table-modern mb-0">
         <thead>
           <tr>
             <th>Arquivo</th>
@@ -345,9 +572,14 @@
         <tbody>
           {% for arquivo in report.file_hotspots.top_by_commits %}
           <tr>
-            <td><code>{{ arquivo.path }}</code></td>
-            <td>{{ arquivo.commit_count }}</td>
-            <td>{{ arquivo.total_changed }}</td>
+            <td>
+              <span class="d-inline-flex align-items-center gap-1">
+                <i class="bi bi-file-earmark-code text-secondary" aria-hidden="true"></i>
+                <code>{{ arquivo.path }}</code>
+              </span>
+            </td>
+            <td><span class="fw-semibold">{{ arquivo.commit_count }}</span></td>
+            <td><span class="badge text-bg-light border text-body">{{ arquivo.total_changed }}</span></td>
           </tr>
           {% endfor %}
         </tbody>
@@ -356,13 +588,23 @@
   </div>
 
   {% if report.file_hotspots.single_owner_files %}
-  <h3 class="h6 text-uppercase text-secondary mt-4 mb-2">
-    Arquivos com um único responsável
-    <span class="badge rounded-pill text-bg-secondary fw-normal">{{ report.file_hotspots.single_owner_count }}</span>
-  </h3>
+  <div class="card border-0 p-3 mb-3 bg-warning-subtle text-warning-emphasis rounded-3">
+    <div class="d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-exclamation-octagon-fill fs-5" aria-hidden="true"></i>
+        <h3 class="h6 text-uppercase fw-bold mb-0">
+          Arquivos com um único responsável (Bus Factor 1)
+        </h3>
+      </div>
+      <span class="badge rounded-pill text-bg-warning text-dark fw-bold">
+        {{ report.file_hotspots.single_owner_count }} arquivo(s)
+      </span>
+    </div>
+  </div>
+
   <div class="card border-0">
     <div class="table-responsive">
-      <table class="table table-sm table-hover mb-0">
+      <table class="table table-sm table-hover table-modern mb-0">
         <thead>
           <tr>
             <th>Arquivo</th>
@@ -373,9 +615,14 @@
         <tbody>
           {% for arquivo in report.file_hotspots.single_owner_files %}
           <tr>
-            <td><code>{{ arquivo.path }}</code></td>
-            <td>{{ arquivo.commit_count }}</td>
-            <td>{{ arquivo.total_changed }}</td>
+            <td>
+              <span class="d-inline-flex align-items-center gap-1">
+                <i class="bi bi-shield-exclamation text-warning-emphasis" aria-hidden="true"></i>
+                <code>{{ arquivo.path }}</code>
+              </span>
+            </td>
+            <td><span class="fw-semibold">{{ arquivo.commit_count }}</span></td>
+            <td><span class="badge text-bg-light border text-body">{{ arquivo.total_changed }}</span></td>
           </tr>
           {% endfor %}
         </tbody>
@@ -383,31 +630,49 @@
     </div>
   </div>
   <p class="small text-secondary mt-2">
+    <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
     Arquivos alterados por apenas uma pessoa em todo o histórico — possível "bus factor" 1.
     Não é necessariamente um problema, mas vale confirmar se o conhecimento desses arquivos está concentrado de propósito.
   </p>
   {% endif %}
 </section>
 
+<!-- 9. PONTOS DE ATENÇÃO -->
 <section class="mb-5" id="atencao">
-  <h2 class="h5 text-uppercase text-secondary mb-3">Pontos de atenção</h2>
+  <div class="section-header-modern mb-3">
+    <div class="d-flex align-items-center gap-2">
+      <span class="section-icon-badge"><i class="bi bi-shield-exclamation" aria-hidden="true"></i></span>
+      <h2 class="h5 text-uppercase font-heading fw-bold mb-0">Pontos de atenção</h2>
+    </div>
+  </div>
   {% if report.attention_flags %}
-    <ul class="list-group">
+    <div class="d-flex flex-column gap-2">
       {% for flag in report.attention_flags %}
-      <li class="list-group-item d-flex align-items-start gap-2">
-        <i class="bi bi-flag-fill text-warning-emphasis mt-1" aria-hidden="true"></i>
-        <span>{{ flag.message }}</span>
-      </li>
+      <div class="attention-card d-flex align-items-start gap-3 p-3">
+        <div class="attention-icon text-warning-emphasis bg-warning-subtle">
+          <i class="bi bi-flag-fill" aria-hidden="true"></i>
+        </div>
+        <div class="flex-grow-1">
+          <div class="text-body fw-medium">{{ flag.message }}</div>
+        </div>
+      </div>
       {% endfor %}
-    </ul>
-    <p class="small text-secondary mt-2 mb-0">Observações para investigação, não vereditos sobre o grupo.</p>
+    </div>
+    <p class="small text-secondary mt-2 mb-0">
+      <i class="bi bi-info-circle me-1" aria-hidden="true"></i>Observações para investigação pedagógica, não vereditos sobre o grupo.
+    </p>
   {% else %}
-    <div class="card border-0"><div class="card-body text-secondary">Nenhum ponto de atenção automático foi destacado neste histórico.</div></div>
+    <div class="card border-0">
+      <div class="card-body text-secondary d-flex align-items-center gap-2">
+        <i class="bi bi-check-circle-fill text-success fs-5" aria-hidden="true"></i>
+        <span>Nenhum ponto de atenção automático foi destacado neste histórico.</span>
+      </div>
+    </div>
   {% endif %}
 </section>
 
 <script id="report-data" type="application/json">{{ report_json | tojson }}</script>
 {% endblock %}
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/report.js') }}"></script>
+<script src="{{ url_for('static', filename='js/report.js', v=static_version|default('5')) }}"></script>
 {% endblock %}
