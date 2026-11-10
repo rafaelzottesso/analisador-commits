@@ -6,6 +6,9 @@ Lê as configurações da seguinte ordem de prioridade:
   3. Variáveis de ambiente (GCP_PROJECT, GCP_ACCOUNT, GCP_REGION)
   4. Configuração ativa no seu gcloud CLI local
 
+Pode ser chamado com qualquer Python: se existir '.venv', o script se
+reexecuta com o Python do ambiente virtual antes de rodar os testes.
+
 Uso:
   python deploy.py                 # Valida testes e executa o deploy
   python deploy.py --dry-run       # Apenas exibe os comandos que seriam executados
@@ -47,6 +50,26 @@ DEFAULT_RESOURCES = {
 
 # Caminho do executável do gcloud (no Windows é gcloud.cmd)
 GCLOUD_BIN = shutil.which("gcloud") or "gcloud"
+
+RAIZ_PROJETO = Path(__file__).resolve().parent
+VENV_DIR = RAIZ_PROJETO / ".venv"
+
+
+def garantir_venv() -> None:
+    """Reexecuta o script com o Python do .venv quando chamado pelo Python global.
+
+    O pytest e as dependências do projeto só existem no ambiente virtual.
+    """
+    relativo = Path("Scripts/python.exe") if os.name == "nt" else Path("bin/python")
+    python_venv = VENV_DIR / relativo
+    if not python_venv.exists() or Path(sys.prefix).resolve() == VENV_DIR.resolve():
+        return
+    print(f"🐍 Ativando o ambiente virtual: {python_venv}", flush=True)
+    resultado = subprocess.run(
+        [str(python_venv), str(Path(__file__).resolve()), *sys.argv[1:]],
+        check=False,
+    )
+    sys.exit(resultado.returncode)
 
 
 def carregar_env_local() -> dict[str, str]:
@@ -235,6 +258,7 @@ def deploy_cloudrun(
 
 
 def main() -> None:
+    garantir_venv()
     env_local = carregar_env_local()
 
     # Resolução de valores padrão na hierarquia (.env > env vars > gcloud config ativo)
