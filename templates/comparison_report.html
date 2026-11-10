@@ -3,6 +3,13 @@
 {% block extra_head %}
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 {% endblock %}
+{% block header_nav %}
+<nav id="nav-secoes" class="header-nav nav nav-pills flex-nowrap flex-grow-1" aria-label="Seções do comparativo">
+  <a class="nav-link" href="#resumo">Resumo</a>
+  <a class="nav-link" href="#autores">Autores</a>
+  <a class="nav-link" href="#atencao">Atenção</a>
+</nav>
+{% endblock %}
 {% block content %}
 <!-- Hero do Relatório Comparativo -->
 <div class="card report-hero-card p-4 mb-4">
@@ -40,13 +47,6 @@
     </a>
   </div>
 </div>
-
-<!-- Barra de Navegação Rápida com Efeito Dock Sticky -->
-<nav class="quick-nav-dock mb-4" id="quick-nav-bar" aria-label="Navegação rápida do comparativo">
-  <a href="#resumo" class="quick-nav-link active"><i class="bi bi-speedometer2" aria-hidden="true"></i> Resumo</a>
-  <a href="#autores" class="quick-nav-link"><i class="bi bi-people-fill" aria-hidden="true"></i> Autores</a>
-  <a href="#atencao" class="quick-nav-link"><i class="bi bi-shield-exclamation" aria-hidden="true"></i> Atenção</a>
-</nav>
 
 {% if report.commits_after_deadline > 0 %}
 <div class="alert alert-warning d-flex align-items-center gap-3 mb-4 border-0 shadow-sm rounded-3">

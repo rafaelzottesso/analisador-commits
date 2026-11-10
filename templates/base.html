@@ -24,12 +24,13 @@
   <a class="visually-hidden-focusable position-absolute top-0 start-0 m-2 btn btn-primary z-3" href="#conteudo-principal">Pular para o conteúdo</a>
 
   <header class="app-header border-bottom sticky-top">
-    <div class="container py-3 d-flex align-items-center justify-content-between gap-3">
-      <a href="{{ url_for('analyzer.index') }}" class="text-decoration-none text-body d-inline-flex align-items-center gap-2">
+    <div class="container py-2 d-flex align-items-center gap-2 gap-lg-3">
+      <a href="{{ url_for('analyzer.index') }}" class="text-decoration-none text-body d-inline-flex align-items-center gap-2 flex-shrink-0" title="Analisador de Commits — nova análise">
         <span class="brand-mark" aria-hidden="true"><i class="bi bi-diagram-3-fill"></i></span>
-        <span class="font-heading fw-bold fs-5">Analisador de Commits</span>
+        <span class="font-heading fw-bold fs-5 {% block brand_text_class %}{% endblock %}">Analisador de Commits</span>
       </a>
-      <button id="botao-tema" type="button" class="theme-toggle btn btn-outline-secondary rounded-circle" aria-label="Alternar tema claro/escuro">
+      {% block header_nav %}<span class="flex-grow-1"></span>{% endblock %}
+      <button id="botao-tema" type="button" class="theme-toggle btn btn-outline-secondary rounded-circle flex-shrink-0" aria-label="Alternar tema claro/escuro">
         <i class="bi bi-sun-fill" aria-hidden="true"></i>
         <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
       </button>
