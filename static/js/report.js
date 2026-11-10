@@ -31,8 +31,13 @@ const layoutBase = {
   },
 };
 
+// Lido do template: com centenas de autores as barras viram ruído ilegível.
+function limiteAutores(idGrafico) {
+  return Number(document.getElementById(idGrafico)?.dataset.limite) || Infinity;
+}
+
 function plotAutores() {
-  const autores = [...dados.authors].reverse();
+  const autores = dados.authors.slice(0, limiteAutores("grafico-autores")).reverse();
   Plotly.newPlot(
     "grafico-autores",
     [
@@ -52,7 +57,7 @@ function plotAutores() {
 
 function plotAtividadeRecente() {
   const atividade = dados.recent_activity;
-  const autores = [...atividade.authors].reverse();
+  const autores = atividade.authors.filter((a) => a.commits_long_window > 0).reverse();
   Plotly.newPlot(
     "grafico-atividade-recente",
     [
@@ -75,7 +80,14 @@ function plotAtividadeRecente() {
         hovertemplate: "%{y}: %{x:,} commits<extra></extra>",
       },
     ],
-    { ...layoutBase, barmode: "stack", legend: { orientation: "h", y: -0.15 } },
+    {
+      ...layoutBase,
+      barmode: "stack",
+      legend: { orientation: "h", y: -0.15 },
+      annotations: autores.length
+        ? []
+        : [{ text: `Nenhum commit nos últimos ${atividade.long_window_days} dias`, showarrow: false, xref: "paper", yref: "paper", x: 0.5, y: 0.5 }],
+    },
     { responsive: true, displayModeBar: false }
   );
 }
@@ -99,18 +111,20 @@ function plotTipos() {
 }
 
 function plotTiposPorAutor() {
-  const autores = [...new Set(dados.commit_types.by_author.map((item) => item.author_name))];
-  const tipos = [...new Set(dados.commit_types.by_author.map((item) => item.commit_type))];
+  const autores = dados.authors.slice(0, limiteAutores("grafico-tipos-autor"));
+  const emails = new Set(autores.map((a) => a.email));
+  const linhas = dados.commit_types.by_author.filter((item) => emails.has(item.author_email));
+  const tipos = [...new Set(linhas.map((item) => item.commit_type))];
   const traces = tipos.map((tipo) => ({
     type: "bar",
     name: tipo,
-    x: autores,
-    y: autores.map((nome) => {
-      const item = dados.commit_types.by_author.find(
-        (linha) => linha.author_name === nome && linha.commit_type === tipo
-      );
-      return item ? item.count : 0;
-    }),
+    x: autores.map((a) => a.name),
+    // Soma: o mesmo e-mail pode ter linhas sob nomes diferentes.
+    y: autores.map((autor) =>
+      linhas
+        .filter((linha) => linha.author_email === autor.email && linha.commit_type === tipo)
+        .reduce((total, linha) => total + linha.count, 0)
+    ),
   }));
   Plotly.newPlot(
     "grafico-tipos-autor",

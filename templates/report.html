@@ -18,6 +18,8 @@
 </nav>
 {% endblock %}
 {% block content %}
+{% set limite_grafico_autores = 15 %}
+{% set total_autores = report.authors|length %}
 <!-- Hero do Relatório com Ações Rápidas -->
 <div class="card report-hero-card p-4 mb-4">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
@@ -169,7 +171,7 @@
           </div>
           <div class="flex-grow-1">
             <div class="text-secondary small fw-medium">Commits com co-autoria</div>
-            <div class="fs-3 font-heading fw-bold">{{ report.summary.commits_with_coauthors }}</div>
+            <div class="fs-3 font-heading fw-bold">{{ report.summary.commits_with_coauthors|num }}</div>
             <div class="mt-1">
               <span class="stat-chip bg-primary-subtle text-primary">
                 Trabalho colaborativo / par
@@ -226,10 +228,10 @@
     <div class="col-lg-6">
       <div class="card chart-card border-0 h-100">
         <div class="card-header">
-          <span><i class="bi bi-bar-chart-fill me-2 text-primary" aria-hidden="true"></i>Commits por autor</span>
+          <span><i class="bi bi-bar-chart-fill me-2 text-primary" aria-hidden="true"></i>Commits por autor{% if total_autores > limite_grafico_autores %} <span class="text-secondary fw-normal small">— top {{ limite_grafico_autores }} de {{ total_autores|num }}</span>{% endif %}</span>
         </div>
         <div class="card-body">
-          <div id="grafico-autores" class="grafico"></div>
+          <div id="grafico-autores" class="grafico" data-limite="{{ limite_grafico_autores }}"></div>
         </div>
       </div>
     </div>
@@ -367,7 +369,7 @@
 
   <div class="card chart-card border-0 mb-4">
     <div class="card-header">
-      <span><i class="bi bi-clock-history me-2 text-primary" aria-hidden="true"></i>Commits nos últimos {{ report.recent_activity.long_window_days }} dias, por autor</span>
+      <span><i class="bi bi-clock-history me-2 text-primary" aria-hidden="true"></i>Commits nos últimos {{ report.recent_activity.long_window_days }} dias, por autor <span class="text-secondary fw-normal small">— só quem commitou no período</span></span>
     </div>
     <div class="card-body">
       <div id="grafico-atividade-recente" class="grafico"></div>
@@ -456,9 +458,9 @@
     <div class="col-lg-6">
       <div class="card chart-card border-0 h-100">
         <div class="card-header">
-          <span><i class="bi bi-bar-chart-steps me-2 text-primary" aria-hidden="true"></i>Tipo por autor</span>
+          <span><i class="bi bi-bar-chart-steps me-2 text-primary" aria-hidden="true"></i>Tipo por autor{% if total_autores > limite_grafico_autores %} <span class="text-secondary fw-normal small">— top {{ limite_grafico_autores }} de {{ total_autores|num }}</span>{% endif %}</span>
         </div>
-        <div class="card-body"><div id="grafico-tipos-autor" class="grafico"></div></div>
+        <div class="card-body"><div id="grafico-tipos-autor" class="grafico" data-limite="{{ limite_grafico_autores }}"></div></div>
       </div>
     </div>
   </div>

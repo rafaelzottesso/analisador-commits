@@ -11,7 +11,7 @@ def create_app() -> Flask:
 
     @app.context_processor
     def inject_static_version() -> dict[str, str]:
-        return {"static_version": "10"}
+        return {"static_version": "11"}
 
     from routes.analyzer import bp
 
