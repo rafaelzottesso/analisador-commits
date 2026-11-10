@@ -30,27 +30,28 @@
   // scroll-margin-top das seções, assim âncoras não caem embaixo da barra fixa.
   function initAlturaHeader() {
     const header = document.querySelector(".app-header");
-    if (!header) return 0;
+    if (!header) return;
     const atualizar = () => {
       document.documentElement.style.setProperty("--altura-header", `${header.offsetHeight}px`);
     };
     atualizar();
     new ResizeObserver(atualizar).observe(header);
-    return header.offsetHeight;
   }
 
-  function initNavSecoes(alturaHeader) {
+  function initNavSecoes() {
     const nav = document.getElementById("nav-secoes");
     if (!nav) return;
 
-    bootstrap.ScrollSpy.getOrCreateInstance(document.body, {
-      target: "#nav-secoes",
-      rootMargin: `-${alturaHeader + 8}px 0px -55% 0px`,
-    });
+    const links = Array.from(nav.querySelectorAll(".nav-link"));
+    const secoes = links.map((link) => document.querySelector(link.getAttribute("href")));
+    const header = document.querySelector(".app-header");
+    let ativoAtual = null;
 
-    document.body.addEventListener("activate.bs.scrollspy", (evento) => {
-      const ativo = evento.relatedTarget;
-      nav.querySelectorAll(".nav-link").forEach((link) => {
+    const marcarAtivo = (ativo) => {
+      if (ativo === ativoAtual) return;
+      ativoAtual = ativo;
+      links.forEach((link) => {
+        link.classList.toggle("active", link === ativo);
         if (link === ativo) {
           link.setAttribute("aria-current", "location");
         } else {
@@ -62,12 +63,45 @@
       // da página disparado pelo clique na âncora, e ela para antes da seção.
       const esquerda = ativo.offsetLeft - nav.clientWidth / 2 + ativo.offsetWidth / 2;
       nav.scrollLeft = Math.max(0, esquerda);
-    });
+    };
+
+    // Ativa a última seção cujo topo já passou logo abaixo do header. No fim da
+    // página vale a última seção, que é curta e nunca chega ao topo da tela.
+    const atualizar = () => {
+      const noFim =
+        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+      if (noFim) {
+        marcarAtivo(links[links.length - 1]);
+        return;
+      }
+      const linhaDeCorte = header.offsetHeight + 24;
+      let indice = 0;
+      secoes.forEach((secao, i) => {
+        if (secao && secao.getBoundingClientRect().top <= linhaDeCorte) indice = i;
+      });
+      marcarAtivo(links[indice]);
+    };
+
+    let agendado = false;
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (agendado) return;
+        agendado = true;
+        requestAnimationFrame(() => {
+          agendado = false;
+          atualizar();
+        });
+      },
+      { passive: true }
+    );
+    atualizar();
   }
 
   window.addEventListener("DOMContentLoaded", () => {
     initBotaoTopo();
     initTooltips();
-    initNavSecoes(initAlturaHeader());
+    initAlturaHeader();
+    initNavSecoes();
   });
 })();
