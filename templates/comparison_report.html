@@ -81,15 +81,15 @@
           <div class="flex-grow-1">
             <div class="text-secondary small fw-medium">Commits (F1 &rarr; F2)</div>
             <div class="fs-3 font-heading fw-bold">
-              {{ report.phase_1.total_commits }} <span class="text-secondary fs-5">&rarr;</span> {{ report.phase_2.total_commits }}
+              {{ report.phase_1.total_commits|num }} <span class="text-secondary fs-5">&rarr;</span> {{ report.phase_2.total_commits|num }}
             </div>
             <div class="mt-1">
               {% set delta = report.phase_2.total_commits - report.phase_1.total_commits %}
               <span class="stat-chip {% if delta > 0 %}bg-success-subtle text-success{% elif delta < 0 %}bg-danger-subtle text-danger{% else %}bg-secondary-subtle text-secondary{% endif %}">
                 {% if delta > 0 %}
-                  <i class="bi bi-arrow-up-short"></i>+{{ delta }} commits na F2
+                  <i class="bi bi-arrow-up-short"></i>+{{ delta|num }} commits na F2
                 {% elif delta < 0 %}
-                  <i class="bi bi-arrow-down-short"></i>{{ delta }} commits na F2
+                  <i class="bi bi-arrow-down-short"></i>{{ delta|num }} commits na F2
                 {% else %}
                   Volume estável
                 {% endif %}
@@ -108,7 +108,7 @@
           <div class="flex-grow-1">
             <div class="text-secondary small fw-medium">Autores (F1 &rarr; F2)</div>
             <div class="fs-3 font-heading fw-bold">
-              {{ report.phase_1.total_authors }} <span class="text-secondary fs-5">&rarr;</span> {{ report.phase_2.total_authors }}
+              {{ report.phase_1.total_authors|num }} <span class="text-secondary fs-5">&rarr;</span> {{ report.phase_2.total_authors|num }}
             </div>
             <div class="mt-1">
               <span class="stat-chip bg-info-subtle text-info">
@@ -128,7 +128,7 @@
           <div class="flex-grow-1">
             <div class="text-secondary small fw-medium">Aderência Conventional</div>
             <div class="fs-3 font-heading fw-bold">
-              {{ report.phase_1.conventional_pct }}% <span class="text-secondary fs-5">&rarr;</span> {{ report.phase_2.conventional_pct }}%
+              {{ report.phase_1.conventional_pct|num }}% <span class="text-secondary fs-5">&rarr;</span> {{ report.phase_2.conventional_pct|num }}%
             </div>
             <div class="mt-1">
               <span class="stat-chip bg-success-subtle text-success">
@@ -148,7 +148,7 @@
           <div class="flex-grow-1">
             <div class="text-secondary small fw-medium">Linhas + / − (F1 &rarr; F2)</div>
             <div class="fs-3 font-heading fw-bold">
-              <span class="text-success">+{{ report.phase_1.total_insertions + report.phase_2.total_insertions }}</span> / <span class="text-danger">−{{ report.phase_1.total_deletions + report.phase_2.total_deletions }}</span>
+              <span class="text-success">+{{ (report.phase_1.total_insertions + report.phase_2.total_insertions)|num }}</span> / <span class="text-danger">−{{ (report.phase_1.total_deletions + report.phase_2.total_deletions)|num }}</span>
             </div>
             <div class="mt-1">
               <span class="stat-chip bg-warning-subtle text-warning-emphasis">
@@ -187,7 +187,7 @@
           </div>
           <div class="flex-grow-1">
             <div class="text-secondary small fw-medium">Últimas 48h da Fase 2</div>
-            <div class="fs-3 font-heading fw-bold">{{ report.phase_2.last_window_pct }}%</div>
+            <div class="fs-3 font-heading fw-bold">{{ report.phase_2.last_window_pct|num }}%</div>
             <div class="mt-1">
               <span class="stat-chip {% if report.phase_2.last_window_pct >= 40 %}bg-danger-subtle text-danger{% else %}bg-primary-subtle text-primary{% endif %}">
                 {% if report.phase_2.last_window_pct >= 40 %}Concentração na reta final{% else %}Ritmo distribuído{% endif %}
@@ -207,7 +207,7 @@
         Fase 2: até {{ report.date_2.strftime("%d/%m/%Y") }}.
         Variação total de commits:
         {% set delta = report.phase_2.total_commits - report.phase_1.total_commits %}
-        {% if delta > 0 %}+{{ delta }} commit(s){% elif delta < 0 %}{{ delta }} commit(s){% else %}volume estável{% endif %}.
+        {% if delta > 0 %}+{{ delta|num }} commit(s){% elif delta < 0 %}{{ delta|num }} commit(s){% else %}volume estável{% endif %}.
         Autores agrupados por e-mail; a mesma pessoa pode aparecer mais de uma vez se usou e-mails diferentes.
       </span>
     </div>
@@ -251,7 +251,7 @@
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
         <div class="small text-secondary fw-medium">
           <i class="bi bi-people me-1" aria-hidden="true"></i>
-          Exibindo <span id="contador-autores-comp-visiveis" class="fw-bold text-body">{{ report.authors|length }}</span> autor(es)
+          Exibindo <span id="contador-autores-comp-visiveis" class="fw-bold text-body">{{ (report.authors|length)|num }}</span> autor(es)
         </div>
         <div class="input-group input-group-sm table-search-input" style="max-width: 300px;">
           <span class="input-group-text bg-body-tertiary border-end-0 text-secondary">
@@ -292,27 +292,27 @@
               </div>
             </td>
             <td><code class="text-secondary small">{{ autor.email }}</code></td>
-            <td><span class="fw-bold">{{ autor.commits_p1 }}</span></td>
-            <td><span class="fw-bold">{{ autor.commits_p2 }}</span></td>
+            <td><span class="fw-bold">{{ autor.commits_p1|num }}</span></td>
+            <td><span class="fw-bold">{{ autor.commits_p2|num }}</span></td>
             <td>
               {% if autor.commit_delta > 0 %}
                 <span class="badge text-bg-success-subtle text-success border border-success-subtle fw-semibold">
-                  <i class="bi bi-arrow-up-short"></i>+{{ autor.commit_delta }}
+                  <i class="bi bi-arrow-up-short"></i>+{{ autor.commit_delta|num }}
                 </span>
               {% elif autor.commit_delta < 0 %}
                 <span class="badge text-bg-danger-subtle text-danger border border-danger-subtle fw-semibold">
-                  <i class="bi bi-arrow-down-short"></i>{{ autor.commit_delta }}
+                  <i class="bi bi-arrow-down-short"></i>{{ autor.commit_delta|num }}
                 </span>
               {% else %}
                 <span class="badge text-bg-light border text-secondary">0</span>
               {% endif %}
             </td>
-            <td class="small">+{{ autor.insertions_p1 }} / −{{ autor.deletions_p1 }}</td>
-            <td class="small">+{{ autor.insertions_p2 }} / −{{ autor.deletions_p2 }}</td>
+            <td class="small">+{{ autor.insertions_p1|num }} / −{{ autor.deletions_p1|num }}</td>
+            <td class="small">+{{ autor.insertions_p2|num }} / −{{ autor.deletions_p2|num }}</td>
             <td>
               {% if autor.coauthored_p1 or autor.coauthored_p2 %}
                 <span class="badge rounded-pill text-bg-info fw-normal">
-                  <i class="bi bi-people me-1" aria-hidden="true"></i>F1: {{ autor.coauthored_p1 }} | F2: {{ autor.coauthored_p2 }}
+                  <i class="bi bi-people me-1" aria-hidden="true"></i>F1: {{ autor.coauthored_p1|num }} | F2: {{ autor.coauthored_p2|num }}
                 </span>
               {% else %}
                 <span class="text-secondary">—</span>

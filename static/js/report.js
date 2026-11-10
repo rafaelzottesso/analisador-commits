@@ -20,6 +20,15 @@ const layoutBase = {
   plot_bgcolor: "rgba(0,0,0,0)",
   font: { family: "Inter, system-ui, sans-serif", color: CORES.neutro },
   colorway: CORES.paleta,
+  separators: ",.",
+  // Getters: cada `{ ...layoutBase }` recebe eixos novos. O Plotly grava o `type`
+  // detectado no objeto de layout recebido; um eixo compartilhado vazaria entre gráficos.
+  get xaxis() {
+    return { separatethousands: true };
+  },
+  get yaxis() {
+    return { separatethousands: true };
+  },
 };
 
 function plotAutores() {
@@ -33,7 +42,7 @@ function plotAutores() {
         x: autores.map((a) => a.commit_count),
         y: autores.map((a) => a.name),
         marker: { color: CORES.primaria },
-        hovertemplate: "%{y}: %{x} commits<extra></extra>",
+        hovertemplate: "%{y}: %{x:,} commits<extra></extra>",
       },
     ],
     { ...layoutBase },
@@ -54,7 +63,7 @@ function plotAtividadeRecente() {
         x: autores.map((a) => a.commits_short_window),
         y: autores.map((a) => a.author_name),
         marker: { color: CORES.primaria },
-        hovertemplate: "%{y}: %{x} commits<extra></extra>",
+        hovertemplate: "%{y}: %{x:,} commits<extra></extra>",
       },
       {
         type: "bar",
@@ -63,7 +72,7 @@ function plotAtividadeRecente() {
         x: autores.map((a) => Math.max(a.commits_long_window - a.commits_short_window, 0)),
         y: autores.map((a) => a.author_name),
         marker: { color: CORES.primariaClara },
-        hovertemplate: "%{y}: %{x} commits<extra></extra>",
+        hovertemplate: "%{y}: %{x:,} commits<extra></extra>",
       },
     ],
     { ...layoutBase, barmode: "stack", legend: { orientation: "h", y: -0.15 } },
@@ -81,7 +90,7 @@ function plotTipos() {
         values: dados.commit_types.types.map((t) => t.count),
         hole: 0.45,
         marker: { colors: CORES.paleta },
-        hovertemplate: "%{label}: %{value} (%{percent})<extra></extra>",
+        hovertemplate: "%{label}: %{value:,} (%{percent})<extra></extra>",
       },
     ],
     { ...layoutBase, margin: { t: 8, r: 8, b: 8, l: 8 } },
@@ -126,7 +135,7 @@ function plotTimeline() {
           size: pontos.map((p) => (p.is_outlier ? 10 : 6)),
           color: pontos.map((p) => (p.is_outlier ? CORES.alerta : CORES.primaria)),
         },
-        hovertemplate: "%{x}: %{y} commits<extra></extra>",
+        hovertemplate: "%{x}: %{y:,} commits<extra></extra>",
       },
     ],
     { ...layoutBase, margin: { t: 8, r: 16, b: 48, l: 48 } },
@@ -148,7 +157,7 @@ function plotHeatmap() {
           [0, "rgba(109, 94, 248, 0.08)"],
           [1, CORES.primaria],
         ],
-        hovertemplate: "%{y} %{x}: %{z} commits<extra></extra>",
+        hovertemplate: "%{y} %{x}: %{z:,} commits<extra></extra>",
       },
     ],
     { ...layoutBase, margin: { t: 8, r: 16, b: 48, l: 80 } },
@@ -167,7 +176,7 @@ function plotArquivos() {
         x: arquivos.map((a) => a.commit_count),
         y: arquivos.map((a) => a.path),
         marker: { color: CORES.destaque },
-        hovertemplate: "%{y}: %{x} commits<extra></extra>",
+        hovertemplate: "%{y}: %{x:,} commits<extra></extra>",
       },
     ],
     { ...layoutBase },
@@ -183,7 +192,7 @@ function plotAcumulado() {
     x: serie.points.map((p) => p.date),
     y: serie.points.map((p) => p.cumulative_commits),
     line: { color: CORES.paleta[indice % CORES.paleta.length] },
-    hovertemplate: `${serie.author_name}: %{y} commits<extra></extra>`,
+    hovertemplate: `${serie.author_name}: %{y:,} commits<extra></extra>`,
   }));
   Plotly.newPlot(
     "grafico-acumulado",
@@ -202,7 +211,7 @@ function plotTamanho() {
         x: dados.commit_size_buckets.map((b) => b.label),
         y: dados.commit_size_buckets.map((b) => b.count),
         marker: { color: CORES.paleta },
-        hovertemplate: "%{x} linhas: %{y} commit(s)<extra></extra>",
+        hovertemplate: "%{x} linhas: %{y:,} commit(s)<extra></extra>",
       },
     ],
     { ...layoutBase, margin: { t: 8, r: 16, b: 48, l: 48 } },
@@ -219,7 +228,7 @@ function plotExtensoes() {
         labels: dados.file_hotspots.by_extension.map((e) => e.extension),
         values: dados.file_hotspots.by_extension.map((e) => e.total_changed),
         marker: { colors: CORES.paleta },
-        hovertemplate: "%{label}: %{value} linhas<extra></extra>",
+        hovertemplate: "%{label}: %{value:,} linhas<extra></extra>",
       },
     ],
     { ...layoutBase, margin: { t: 8, r: 8, b: 8, l: 8 } },
@@ -249,7 +258,7 @@ function initBuscaAutores() {
     });
 
     if (contador) {
-      contador.textContent = String(visiveis);
+      contador.textContent = visiveis.toLocaleString("pt-BR");
     }
   });
 }

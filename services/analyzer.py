@@ -40,6 +40,7 @@ from models.commit import (
     TypeCount,
 )
 from services.errors import EmptyRepositoryError
+from services.formatting import format_number
 
 
 TIPO_NAO_PADRONIZADO = "não padronizado"
@@ -345,7 +346,7 @@ def _gerar_insights_comparacao(
         if len(inativos) > 3:
             nomes += f" e mais {len(inativos) - 3}"
         insights.append(
-            f"⚠️ {len(inativos)} autor(es) atuaram na Fase 1 mas não realizaram nenhum commit na Fase 2: {nomes}."
+            f"⚠️ {format_number(len(inativos))} autor(es) atuaram na Fase 1 mas não realizaram nenhum commit na Fase 2: {nomes}."
         )
 
     novos = [a.name for a in authors if a.commits_p1 == 0 and a.commits_p2 > 0]
@@ -354,7 +355,7 @@ def _gerar_insights_comparacao(
         if len(novos) > 3:
             nomes += f" e mais {len(novos) - 3}"
         insights.append(
-            f"ℹ️ {len(novos)} autor(es) começaram a commitar apenas na Fase 2: {nomes}."
+            f"ℹ️ {format_number(len(novos))} autor(es) começaram a commitar apenas na Fase 2: {nomes}."
         )
 
     crammers = [a.name for a in authors if a.alert_cramming]
@@ -375,16 +376,16 @@ def _gerar_insights_comparacao(
         diff_cc = phase_2.conventional_pct - phase_1.conventional_pct
         if diff_cc >= 10:
             insights.append(
-                f"✨ Evolução de padronização: a aderência ao Conventional Commits saltou de {phase_1.conventional_pct}% na Fase 1 para {phase_2.conventional_pct}% na Fase 2 (+{round(diff_cc, 1)}%)."
+                f"✨ Evolução de padronização: a aderência ao Conventional Commits saltou de {format_number(phase_1.conventional_pct)}% na Fase 1 para {format_number(phase_2.conventional_pct)}% na Fase 2 (+{format_number(round(diff_cc, 1))}%)."
             )
         elif diff_cc <= -15:
             insights.append(
-                f"⚠️ Queda na padronização: a aderência ao Conventional Commits caiu de {phase_1.conventional_pct}% na Fase 1 para {phase_2.conventional_pct}% na Fase 2 ({round(diff_cc, 1)}%)."
+                f"⚠️ Queda na padronização: a aderência ao Conventional Commits caiu de {format_number(phase_1.conventional_pct)}% na Fase 1 para {format_number(phase_2.conventional_pct)}% na Fase 2 ({format_number(round(diff_cc, 1))}%)."
             )
 
     if commits_after > 0:
         insights.append(
-            f"🕒 Entregas fora do prazo: foram registrados {commits_after} commit(s) após a data limite da Entrega 2."
+            f"🕒 Entregas fora do prazo: foram registrados {format_number(commits_after)} commit(s) após a data limite da Entrega 2."
         )
 
     if phase_2.total_commits == 0:
@@ -831,7 +832,7 @@ def _pontos_de_atencao(commits: list[Commit]) -> list[AttentionFlag]:
             AttentionFlag(
                 kind="mensagem_curta",
                 message=(
-                    f"{len(curtas)} commit(s) com mensagem vazia ou com menos de "
+                    f"{format_number(len(curtas))} commit(s) com mensagem vazia ou com menos de "
                     f"{config.SHORT_MESSAGE_CHARS} caracteres."
                 ),
                 details=", ".join(c.sha_short for c in curtas[:8]),
@@ -848,7 +849,7 @@ def _pontos_de_atencao(commits: list[Commit]) -> list[AttentionFlag]:
             AttentionFlag(
                 kind="commit_enorme",
                 message=(
-                    f"{len(enormes)} commit(s) alteram {config.HUGE_COMMIT_LINES} "
+                    f"{format_number(len(enormes))} commit(s) alteram {format_number(config.HUGE_COMMIT_LINES)} "
                     "linhas ou mais de uma vez — possível trabalho acumulado."
                 ),
                 details=", ".join(c.sha_short for c in enormes[:8]),
@@ -872,7 +873,7 @@ def _pontos_de_atencao(commits: list[Commit]) -> list[AttentionFlag]:
                 kind="mensagem_repetida",
                 message=(
                     f'A mensagem "{grupo[0].message_summary.strip()}" aparece '
-                    f"{len(grupo)} vezes."
+                    f"{format_number(len(grupo))} vezes."
                 ),
                 details=chave,
             )
@@ -891,7 +892,7 @@ def _pontos_de_atencao(commits: list[Commit]) -> list[AttentionFlag]:
                 AttentionFlag(
                     kind="concentracao_temporal",
                     message=(
-                        f"Todos os {len(grupo)} commits de {nome} ({email}) "
+                        f"Todos os {format_number(len(grupo))} commits de {nome} ({email}) "
                         f"ocorreram no mesmo dia ({next(iter(dias)).isoformat()})."
                     ),
                     details=email,
@@ -909,7 +910,7 @@ def _pontos_de_atencao(commits: list[Commit]) -> list[AttentionFlag]:
                     AttentionFlag(
                         kind="corrida_final",
                         message=(
-                            f"{len(janela)} commit(s) ({pct}%) ocorreram nas últimas "
+                            f"{format_number(len(janela))} commit(s) ({format_number(pct)}%) ocorreram nas últimas "
                             f"{config.LAST_WINDOW_HOURS}h do histórico — possível "
                             "corrida de última hora."
                         ),
@@ -927,7 +928,7 @@ def _pontos_de_atencao(commits: list[Commit]) -> list[AttentionFlag]:
         flags.append(
             AttentionFlag(
                 kind="revert",
-                message=f"{len(reverts)} revert(s) ou merge(s) de reversão encontrados.",
+                message=f"{format_number(len(reverts))} revert(s) ou merge(s) de reversão encontrados.",
                 details=", ".join(c.sha_short for c in reverts[:8]),
             )
         )

@@ -68,7 +68,7 @@
 {% if report.summary.analysis_limited %}
 <div class="alert alert-info d-flex align-items-center gap-2 mb-4 border-0 shadow-sm">
   <i class="bi bi-info-circle-fill fs-5" aria-hidden="true"></i>
-  <div>A análise foi limitada aos {{ report.summary.max_commits_limit }} commits mais recentes.</div>
+  <div>A análise foi limitada aos {{ report.summary.max_commits_limit|num }} commits mais recentes.</div>
 </div>
 {% endif %}
 
@@ -80,7 +80,7 @@
       <h2 class="h5 text-uppercase font-heading fw-bold mb-0">Resumo executivo</h2>
     </div>
     <span class="badge rounded-pill text-bg-light border text-secondary fw-normal">
-      <i class="bi bi-git me-1" aria-hidden="true"></i> {{ report.summary.total_commits }} commits totais
+      <i class="bi bi-git me-1" aria-hidden="true"></i> {{ report.summary.total_commits|num }} commits totais
     </span>
   </div>
 
@@ -93,10 +93,10 @@
           </div>
           <div class="flex-grow-1">
             <div class="text-secondary small fw-medium">Commits</div>
-            <div class="fs-3 font-heading fw-bold">{{ report.summary.total_commits }}</div>
+            <div class="fs-3 font-heading fw-bold">{{ report.summary.total_commits|num }}</div>
             <div class="mt-1">
               <span class="stat-chip bg-primary-subtle text-primary">
-                {{ report.summary.direct_commits }} diretos &middot; {{ report.summary.merge_commits }} merges
+                {{ report.summary.direct_commits|num }} diretos &middot; {{ report.summary.merge_commits|num }} merges
               </span>
             </div>
           </div>
@@ -111,7 +111,7 @@
           </div>
           <div class="flex-grow-1">
             <div class="text-secondary small fw-medium">Autores</div>
-            <div class="fs-3 font-heading fw-bold">{{ report.summary.total_authors }}</div>
+            <div class="fs-3 font-heading fw-bold">{{ report.summary.total_authors|num }}</div>
             <div class="mt-1">
               <span class="stat-chip bg-info-subtle text-info">
                 Contribuidores no período
@@ -129,7 +129,7 @@
           </div>
           <div class="flex-grow-1">
             <div class="text-secondary small fw-medium">Aderência Conventional</div>
-            <div class="fs-3 font-heading fw-bold">{{ report.summary.conventional_adherence_pct }}%</div>
+            <div class="fs-3 font-heading fw-bold">{{ report.summary.conventional_adherence_pct|num }}%</div>
             <div class="mt-1">
               <span class="stat-chip bg-success-subtle text-success">
                 {% if report.summary.conventional_adherence_pct >= 80 %}Excelente padronização
@@ -150,7 +150,7 @@
           <div class="flex-grow-1">
             <div class="text-secondary small fw-medium">Linhas + / −</div>
             <div class="fs-3 font-heading fw-bold">
-              <span class="text-success">+{{ report.summary.total_insertions }}</span> / <span class="text-danger">−{{ report.summary.total_deletions }}</span>
+              <span class="text-success">+{{ report.summary.total_insertions|num }}</span> / <span class="text-danger">−{{ report.summary.total_deletions|num }}</span>
             </div>
             <div class="mt-1">
               <span class="stat-chip bg-warning-subtle text-warning-emphasis">
@@ -187,7 +187,7 @@
           </div>
           <div class="flex-grow-1">
             <div class="text-secondary small fw-medium">Últimas {{ report.summary.last_window_hours }}h do histórico</div>
-            <div class="fs-3 font-heading fw-bold">{{ report.summary.last_window_pct }}%</div>
+            <div class="fs-3 font-heading fw-bold">{{ report.summary.last_window_pct|num }}%</div>
             <div class="mt-1">
               <span class="stat-chip {% if report.summary.last_window_pct >= 40 %}bg-danger-subtle text-danger{% else %}bg-primary-subtle text-primary{% endif %}">
                 {% if report.summary.last_window_pct >= 40 %}Concentração na reta final{% else %}Ritmo distribuído{% endif %}
@@ -205,8 +205,8 @@
       <span>
         Período: <strong>{{ report.summary.period_start.strftime("%d/%m/%Y") }}</strong>
         a <strong>{{ report.summary.period_end.strftime("%d/%m/%Y") }}</strong>.
-        Total de <strong>{{ report.summary.merge_commits }} merge(s)</strong> e
-        <strong>{{ report.summary.direct_commits }} commit(s) direto(s)</strong>.
+        Total de <strong>{{ report.summary.merge_commits|num }} merge(s)</strong> e
+        <strong>{{ report.summary.direct_commits|num }} commit(s) direto(s)</strong>.
         Autores agrupados por e-mail; a mesma pessoa pode aparecer mais de uma vez se usou e-mails diferentes.
       </span>
     </div>
@@ -236,7 +236,7 @@
     <div class="col-lg-6">
       <div class="card chart-card border-0 h-100">
         <div class="card-header">
-          <span><i class="bi bi-graph-up me-2 text-primary" aria-hidden="true"></i>Contribuição acumulada (top {{ report.cumulative_contribution|length }} autores)</span>
+          <span><i class="bi bi-graph-up me-2 text-primary" aria-hidden="true"></i>Contribuição acumulada (top {{ (report.cumulative_contribution|length)|num }} autores)</span>
         </div>
         <div class="card-body">
           <div id="grafico-acumulado" class="grafico"></div>
@@ -250,7 +250,7 @@
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
         <div class="small text-secondary fw-medium">
           <i class="bi bi-people me-1" aria-hidden="true"></i>
-          Exibindo <span id="contador-autores-visiveis" class="fw-bold text-body">{{ report.authors|length }}</span> autor(es)
+          Exibindo <span id="contador-autores-visiveis" class="fw-bold text-body">{{ (report.authors|length)|num }}</span> autor(es)
         </div>
         <div class="input-group input-group-sm table-search-input" style="max-width: 300px;">
           <span class="input-group-text bg-body-tertiary border-end-0 text-secondary">
@@ -296,7 +296,7 @@
               </div>
             </td>
             <td><code class="text-secondary small">{{ autor.email }}</code></td>
-            <td><span class="fw-bold">{{ autor.commit_count }}</span></td>
+            <td><span class="fw-bold">{{ autor.commit_count|num }}</span></td>
             <td>
               <div class="d-flex align-items-center gap-2">
                 <div class="progress progress-mini flex-grow-1" style="height: 6px;">
@@ -309,19 +309,19 @@
                     aria-valuemax="100"
                   ></div>
                 </div>
-                <span class="small fw-semibold">{{ autor.commit_pct }}%</span>
+                <span class="small fw-semibold">{{ autor.commit_pct|num }}%</span>
               </div>
             </td>
             <td>
-              <span class="text-success fw-semibold">+{{ autor.insertions }}</span> /
-              <span class="text-danger fw-semibold">−{{ autor.deletions }}</span>
+              <span class="text-success fw-semibold">+{{ autor.insertions|num }}</span> /
+              <span class="text-danger fw-semibold">−{{ autor.deletions|num }}</span>
             </td>
             <td class="small">{{ autor.first_commit_at.strftime("%d/%m/%Y") }}</td>
             <td class="small">{{ autor.last_commit_at.strftime("%d/%m/%Y") }}</td>
             <td>
               {% if autor.coauthored_commit_count %}
                 <span class="badge rounded-pill text-bg-info fw-normal">
-                  <i class="bi bi-people me-1" aria-hidden="true"></i>{{ autor.coauthored_commit_count }} commit(s)
+                  <i class="bi bi-people me-1" aria-hidden="true"></i>{{ autor.coauthored_commit_count|num }} commit(s)
                 </span>
               {% else %}
                 <span class="text-secondary">—</span>
@@ -331,7 +331,7 @@
               <div class="d-flex flex-wrap gap-1">
                 {% for tipo in autor.top_commit_types[:3] %}
                   <span class="badge rounded-pill badge-commit-type">
-                    {{ tipo.commit_type }} <span class="badge-count">({{ tipo.count }})</span>
+                    {{ tipo.commit_type }} <span class="badge-count">({{ tipo.count|num }})</span>
                   </span>
                 {% endfor %}
               </div>
@@ -389,10 +389,10 @@
             </div>
             <div class="d-flex gap-1 flex-shrink-0">
               <span class="badge rounded-pill text-bg-primary fw-normal" title="Commits nos últimos {{ report.recent_activity.short_window_days }} dias">
-                {{ autor.commits_short_window }} em {{ report.recent_activity.short_window_days }}d
+                {{ autor.commits_short_window|num }} em {{ report.recent_activity.short_window_days }}d
               </span>
               <span class="badge rounded-pill text-bg-secondary fw-normal" title="Commits nos últimos {{ report.recent_activity.long_window_days }} dias">
-                {{ autor.commits_long_window }} em {{ report.recent_activity.long_window_days }}d
+                {{ autor.commits_long_window|num }} em {{ report.recent_activity.long_window_days }}d
               </span>
             </div>
           </div>
@@ -401,17 +401,17 @@
           <div class="p-2 rounded-2 bg-body-tertiary text-secondary small">
             <i class="bi bi-calendar-x me-1 text-warning-emphasis" aria-hidden="true"></i>
             Sem commits nos últimos {{ report.recent_activity.long_window_days }} dias.
-            Último commit há <strong>{{ autor.days_since_last_commit }} dia(s)</strong>, em
+            Último commit há <strong>{{ autor.days_since_last_commit|num }} dia(s)</strong>, em
             {{ autor.last_commit_at.strftime("%d/%m/%Y") }}.
           </div>
           {% else %}
           <p class="text-secondary small mb-2">
             <i class="bi bi-activity me-1 text-success" aria-hidden="true"></i>
-            Ativo em <strong>{{ autor.active_days_long_window }} dia(s)</strong> nos últimos
+            Ativo em <strong>{{ autor.active_days_long_window|num }} dia(s)</strong> nos últimos
             {{ report.recent_activity.long_window_days }}d. Linhas +/−:
-            <span class="text-success fw-semibold">+{{ autor.insertions_long_window }}</span> /
-            <span class="text-danger fw-semibold">−{{ autor.deletions_long_window }}</span>.
-            Último commit há {{ autor.days_since_last_commit }} dia(s).
+            <span class="text-success fw-semibold">+{{ autor.insertions_long_window|num }}</span> /
+            <span class="text-danger fw-semibold">−{{ autor.deletions_long_window|num }}</span>.
+            Último commit há {{ autor.days_since_last_commit|num }} dia(s).
           </p>
           <ul class="list-unstyled small mb-0">
             {% for msg in autor.recent_messages %}
@@ -430,8 +430,8 @@
   </div>
   {% if report.recent_activity.truncated %}
   <p class="small text-secondary mt-3">
-    Mostrando os {{ report.recent_activity.authors|length }} autores mais ativos de
-    {{ report.summary.total_authors }} no total.
+    Mostrando os {{ (report.recent_activity.authors|length)|num }} autores mais ativos de
+    {{ report.summary.total_authors|num }} no total.
   </p>
   {% endif %}
 </section>
@@ -465,12 +465,12 @@
   <div class="card border-0 bg-body-tertiary p-3 rounded-3 mt-3">
     <div class="d-flex flex-wrap align-items-center gap-2 small">
       <i class="bi bi-tags text-primary" aria-hidden="true"></i>
-      <span><strong>{{ report.commit_types.with_scope_count }}</strong> commit(s) especificam escopo.</span>
+      <span><strong>{{ report.commit_types.with_scope_count|num }}</strong> commit(s) especificam escopo.</span>
       {% if report.commit_types.top_scopes %}
         <span class="text-secondary ms-2">Escopos mais frequentes:</span>
         {% for escopo in report.commit_types.top_scopes[:5] %}
           <span class="badge rounded-pill bg-body text-body border">
-            <i class="bi bi-tag-fill me-1 text-secondary" aria-hidden="true"></i>{{ escopo.scope }} ({{ escopo.count }})
+            <i class="bi bi-tag-fill me-1 text-secondary" aria-hidden="true"></i>{{ escopo.scope }} ({{ escopo.count|num }})
           </span>
         {% endfor %}
       {% endif %}
@@ -579,8 +579,8 @@
                 <code>{{ arquivo.path }}</code>
               </span>
             </td>
-            <td><span class="fw-semibold">{{ arquivo.commit_count }}</span></td>
-            <td><span class="badge text-bg-light border text-body">{{ arquivo.total_changed }}</span></td>
+            <td><span class="fw-semibold">{{ arquivo.commit_count|num }}</span></td>
+            <td><span class="badge text-bg-light border text-body">{{ arquivo.total_changed|num }}</span></td>
           </tr>
           {% endfor %}
         </tbody>
@@ -598,7 +598,7 @@
         </h3>
       </div>
       <span class="badge rounded-pill text-bg-warning text-dark fw-bold">
-        {{ report.file_hotspots.single_owner_count }} arquivo(s)
+        {{ report.file_hotspots.single_owner_count|num }} arquivo(s)
       </span>
     </div>
   </div>
@@ -622,8 +622,8 @@
                 <code>{{ arquivo.path }}</code>
               </span>
             </td>
-            <td><span class="fw-semibold">{{ arquivo.commit_count }}</span></td>
-            <td><span class="badge text-bg-light border text-body">{{ arquivo.total_changed }}</span></td>
+            <td><span class="fw-semibold">{{ arquivo.commit_count|num }}</span></td>
+            <td><span class="badge text-bg-light border text-body">{{ arquivo.total_changed|num }}</span></td>
           </tr>
           {% endfor %}
         </tbody>

@@ -21,6 +21,15 @@ const layoutBase = {
   plot_bgcolor: "rgba(0,0,0,0)",
   font: { family: "Inter, system-ui, sans-serif", color: CORES.neutro },
   colorway: CORES.paleta,
+  separators: ",.",
+  // Getters: cada `{ ...layoutBase }` recebe eixos novos. O Plotly grava o `type`
+  // detectado no objeto de layout recebido; um eixo compartilhado vazaria entre gráficos.
+  get xaxis() {
+    return { separatethousands: true };
+  },
+  get yaxis() {
+    return { separatethousands: true };
+  },
   legend: { orientation: "h", y: -0.2 },
 };
 
@@ -39,7 +48,7 @@ function plotComparativoAutores() {
     x: autores.map((a) => a.commits_p1),
     y: autores.map((a) => a.name),
     marker: { color: CORES.primaria },
-    hovertemplate: "%{y} (F1): %{x} commits<extra></extra>",
+    hovertemplate: "%{y} (F1): %{x:,} commits<extra></extra>",
   };
 
   const trace2 = {
@@ -49,7 +58,7 @@ function plotComparativoAutores() {
     x: autores.map((a) => a.commits_p2),
     y: autores.map((a) => a.name),
     marker: { color: CORES.secundaria },
-    hovertemplate: "%{y} (F2): %{x} commits<extra></extra>",
+    hovertemplate: "%{y} (F2): %{x:,} commits<extra></extra>",
   };
 
   Plotly.newPlot(
@@ -77,7 +86,7 @@ function plotComparativoTipos() {
     x: tipos.map((t) => t.commit_type),
     y: tipos.map((t) => t.pct_p1),
     marker: { color: CORES.primaria },
-    hovertemplate: "%{x} (F1): %{y}% (%{text} commits)<extra></extra>",
+    hovertemplate: "%{x} (F1): %{y:,.1f}% (%{text} commits)<extra></extra>",
     text: tipos.map((t) => t.count_p1),
   };
 
@@ -87,7 +96,7 @@ function plotComparativoTipos() {
     x: tipos.map((t) => t.commit_type),
     y: tipos.map((t) => t.pct_p2),
     marker: { color: CORES.secundaria },
-    hovertemplate: "%{x} (F2): %{y}% (%{text} commits)<extra></extra>",
+    hovertemplate: "%{x} (F2): %{y:,.1f}% (%{text} commits)<extra></extra>",
     text: tipos.map((t) => t.count_p2),
   };
 
@@ -125,7 +134,7 @@ function initBuscaAutoresComp() {
     });
 
     if (contador) {
-      contador.textContent = String(visiveis);
+      contador.textContent = visiveis.toLocaleString("pt-BR");
     }
   });
 }
