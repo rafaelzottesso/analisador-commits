@@ -3,6 +3,7 @@
 {% block extra_head %}
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 {% endblock %}
+{% block brand_text_class %}d-none d-md-inline{% endblock %}
 {% block header_nav %}
 <nav id="nav-secoes" class="header-nav nav nav-pills flex-nowrap flex-grow-1" aria-label="Seções do comparativo">
   <a class="nav-link" href="#resumo">Resumo</a>
@@ -54,7 +55,7 @@
     <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
   </div>
   <div>
-    <strong>Entregas fora do prazo:</strong> foram identificados <strong>{{ report.commits_after_deadline }} commit(s)</strong> realizados após o encerramento da Fase 2 ({{ report.date_2.strftime("%d/%m/%Y às 23:59") }}).
+    <strong>Entregas fora do prazo:</strong> foram identificados <strong>{{ report.commits_after_deadline|num }} commit(s)</strong> realizados após o encerramento da Fase 2 ({{ report.date_2.strftime("%d/%m/%Y às 23:59") }}).
   </div>
 </div>
 {% endif %}
@@ -168,7 +169,7 @@
           <div class="flex-grow-1">
             <div class="text-secondary small fw-medium">Commits com co-autoria</div>
             <div class="fs-3 font-heading fw-bold">
-              {{ report.phase_1.commits_with_coauthors }} <span class="text-secondary fs-5">&rarr;</span> {{ report.phase_2.commits_with_coauthors }}
+              {{ report.phase_1.commits_with_coauthors|num }} <span class="text-secondary fs-5">&rarr;</span> {{ report.phase_2.commits_with_coauthors|num }}
             </div>
             <div class="mt-1">
               <span class="stat-chip bg-primary-subtle text-primary">
